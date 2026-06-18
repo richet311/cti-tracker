@@ -2,19 +2,10 @@
 
 import { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Wifi, WifiOff, CheckCircle, AlertCircle } from "lucide-react";
-import {
-  FeedMessage,
-  IOC_TYPE_COLORS,
-  SOURCE_COLORS,
-  truncate,
-} from "@/lib/api";
+import { Play, Terminal, CheckCircle } from "lucide-react";
+import { FeedMessage, IOC_TYPE_COLORS, SOURCE_COLORS, truncate } from "@/lib/api";
 
-interface Props {
-  messages: FeedMessage[];
-  collecting: boolean;
-  onCollect: () => void;
-}
+const ACCENT = "#00c8ff";
 
 const TYPE_LABELS: Record<string, string> = {
   hash_sha256: "SHA256",
@@ -22,79 +13,146 @@ const TYPE_LABELS: Record<string, string> = {
   hash_sha1: "SHA1",
   url: "URL",
   ip: "IP",
-  domain: "DOM",
+  domain: "DOMAIN",
 };
 
-const ACCENT = "#00c8ff";
+const SOURCE_LABELS: Record<string, string> = {
+  malwarebazaar: "MB",
+  urlhaus: "UH",
+  manual: "MAN",
+  system: "SYS",
+};
+
+interface Props {
+  messages: FeedMessage[];
+  collecting: boolean;
+  onCollect: () => void;
+}
+
+function formatTime(ts: number) {
+  return new Date(ts).toLocaleTimeString("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
 
 export default function LiveFeed({ messages, collecting, onCollect }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
+  const iocCount = messages.filter((m) => m.type === "ioc").length;
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4, duration: 0.4 }}
-      className="card flex flex-col"
-      style={{ minHeight: 480 }}
+      className="flex flex-col overflow-hidden"
+      style={{
+        background: "#111114",
+        border: "1px solid #27272a",
+        borderRadius: 12,
+        minHeight: 520,
+      }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex items-center gap-2">
-          {collecting ? (
-            <motion.div
+      {/* ── Window chrome ─────────────────────────────────────────────── */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 shrink-0"
+        style={{ background: "#18181b", borderBottom: "1px solid #27272a" }}
+      >
+        {/* Traffic-light dots */}
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#3f3f46" }} />
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#3f3f46" }} />
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#3f3f46" }} />
+        </div>
+
+        {/* Title */}
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <Terminal className="w-3.5 h-3.5" style={{ color: "#52525b" }} />
+          <span className="text-[11px] font-mono" style={{ color: "#71717a" }}>
+            threat-intel-collector
+          </span>
+          {collecting && (
+            <motion.span
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ repeat: Infinity, duration: 1.2 }}
-              className="w-2 h-2 rounded-full"
-              style={{ background: ACCENT }}
-            />
-          ) : (
-            <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          )}
-          <h2 className="text-zinc-600 dark:text-zinc-400 text-sm font-semibold uppercase tracking-widest">
-            Live Feed
-          </h2>
-          {collecting && (
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full" style={{ color: ACCENT, background: `${ACCENT}18` }}>
-              LIVE
-            </span>
+              className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+              style={{ color: ACCENT, background: `${ACCENT}15` }}
+            >
+              ● LIVE
+            </motion.span>
           )}
         </div>
 
+        {/* Collect button */}
         <button
           onClick={onCollect}
           disabled={collecting}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold font-mono transition-all"
+          style={
             collecting
-              ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
-              : "hover:opacity-90 hover:scale-105 active:scale-95"
-          }`}
-          style={collecting ? undefined : { background: ACCENT, color: "#09090b" }}
+              ? { background: "#27272a", color: "#52525b", cursor: "not-allowed" }
+              : { background: ACCENT, color: "#09090b" }
+          }
         >
-          {collecting ? (
-            <>
-              <Wifi className="w-3 h-3" />
-              Collecting
-            </>
-          ) : (
-            <>
-              <Play className="w-3 h-3" />
-              Collect Now
-            </>
-          )}
+          <Play className="w-3 h-3" />
+          {collecting ? "running..." : "collect"}
         </button>
       </div>
 
-      {/* Feed */}
+      {/* ── Prompt line ───────────────────────────────────────────────── */}
+      <div
+        className="flex items-center gap-2 px-4 py-2 shrink-0"
+        style={{ background: "#0e0e11", borderBottom: "1px solid #1a1a1e" }}
+      >
+        <span className="text-[11px] font-mono" style={{ color: "#3f3f46" }}>~/cti</span>
+        <span className="text-[11px] font-mono" style={{ color: ACCENT, opacity: 0.5 }}>$</span>
+        <span className="text-[11px] font-mono" style={{ color: "#52525b" }}>
+          python main.py collect --limit 50
+        </span>
+        {iocCount > 0 && (
+          <span className="ml-auto text-[10px] font-mono" style={{ color: "#3f3f46" }}>
+            {iocCount} iocs captured
+          </span>
+        )}
+      </div>
+
+      {/* ── Column headers ─────────────────────────────────────────────── */}
+      {messages.length > 0 && (
+        <div
+          className="flex items-center gap-3 px-4 py-1.5 shrink-0"
+          style={{ background: "#0e0e11", borderBottom: "1px solid #1a1a1e" }}
+        >
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest shrink-0" style={{ color: "#3f3f46", width: 58 }}>TIME</span>
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest shrink-0" style={{ color: "#3f3f46", minWidth: 56 }}>TYPE</span>
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest flex-1" style={{ color: "#3f3f46" }}>VALUE</span>
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest shrink-0" style={{ color: "#3f3f46" }}>SRC</span>
+        </div>
+      )}
+
+      {/* ── Feed body ─────────────────────────────────────────────────── */}
       <div
         ref={listRef}
-        className="flex-1 overflow-y-auto p-3 space-y-1"
-        style={{ maxHeight: 400 }}
+        className="flex-1 overflow-y-auto"
+        style={{ maxHeight: 360 }}
       >
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 py-12 text-zinc-400 dark:text-zinc-600">
-            <WifiOff className="w-8 h-8" />
-            <span className="text-sm">Click &quot;Collect Now&quot; to start a live feed</span>
+          <div className="flex flex-col items-start justify-center h-full py-16 px-6 gap-1">
+            <p className="text-[11px] font-mono" style={{ color: "#3f3f46" }}>
+              <span style={{ color: ACCENT, opacity: 0.4 }}>$</span>{" "}
+              <span>waiting for collection job...</span>
+            </p>
+            <p className="text-[11px] font-mono flex items-center gap-1" style={{ color: "#3f3f46" }}>
+              <span style={{ color: ACCENT, opacity: 0.4 }}>$</span>
+              <motion.span
+                animate={{ opacity: [1, 0, 1] }}
+                transition={{ repeat: Infinity, duration: 1 }}
+                style={{ color: ACCENT }}
+              >
+                ▌
+              </motion.span>
+            </p>
           </div>
         )}
 
@@ -102,78 +160,111 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, x: 8 }}
+              initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18 }}
+              transition={{ duration: 0.15 }}
             >
               {msg.type === "ioc" ? (
-                <IOCEntry msg={msg} />
+                <IOCRow msg={msg} />
               ) : msg.type === "complete" ? (
-                <CompleteEntry msg={msg} />
+                <CompleteRow msg={msg} />
               ) : (
-                <StatusEntry msg={msg} />
+                <StatusRow msg={msg} />
               )}
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
-      {/* Footer count */}
-      {messages.length > 0 && (
-        <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-800 text-zinc-400 dark:text-zinc-600 text-xs">
-          {messages.filter((m) => m.type === "ioc").length} indicators in feed
+      {/* ── Footer legend ─────────────────────────────────────────────── */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5 shrink-0"
+        style={{ background: "#18181b", borderTop: "1px solid #27272a" }}
+      >
+        <div className="flex items-center gap-4">
+          <span className="text-[10px] font-mono flex items-center gap-1.5" style={{ color: "#52525b" }}>
+            <span style={{ color: SOURCE_COLORS.malwarebazaar }}>■</span>
+            MalwareBazaar
+          </span>
+          <span className="text-[10px] font-mono flex items-center gap-1.5" style={{ color: "#52525b" }}>
+            <span style={{ color: SOURCE_COLORS.urlhaus }}>■</span>
+            URLhaus
+          </span>
         </div>
-      )}
+        <span className="text-[10px] font-mono" style={{ color: "#3f3f46" }}>
+          {iocCount > 0 ? `${iocCount} indicators` : "idle"}
+        </span>
+      </div>
     </motion.div>
   );
 }
 
-function IOCEntry({ msg }: { msg: FeedMessage }) {
+function IOCRow({ msg }: { msg: FeedMessage }) {
   const typeColor = IOC_TYPE_COLORS[msg.ioc_type ?? ""] ?? "#94a3b8";
-  const srcColor = SOURCE_COLORS[msg.source] ?? "#94a3b8";
+  const srcColor = SOURCE_COLORS[msg.source] ?? "#52525b";
 
   return (
-    <div className="flex items-start gap-2 px-2 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition-colors">
+    <div
+      className="flex items-center gap-3 px-4 py-1.5 text-[11px] hover:bg-white/[0.02] transition-colors"
+      style={{
+        borderBottom: "1px solid #1a1a1e",
+        borderLeft: `2px solid ${srcColor}40`,
+      }}
+    >
+      <span className="shrink-0 font-mono" style={{ color: "#3f3f46", width: 58 }}>
+        {formatTime(msg.timestamp)}
+      </span>
+
       <span
-        className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded font-mono mt-0.5"
+        className="shrink-0 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded text-center"
         style={{
           color: typeColor,
           background: `${typeColor}18`,
           border: `1px solid ${typeColor}30`,
+          minWidth: 56,
         }}
       >
         {TYPE_LABELS[msg.ioc_type ?? ""] ?? msg.ioc_type}
       </span>
 
-      <span className="ioc-value text-zinc-600 dark:text-zinc-300 flex-1 break-all leading-relaxed">
-        {truncate(msg.value ?? "", 52)}
+      <span className="flex-1 truncate font-mono" style={{ color: "#a1a1aa" }}>
+        {truncate(msg.value ?? "", 50)}
       </span>
 
       <span
-        className="shrink-0 text-[9px] font-semibold mt-0.5"
+        className="shrink-0 text-[9px] font-bold font-mono"
         style={{ color: srcColor }}
       >
-        {msg.source === "malwarebazaar" ? "MB" : msg.source === "urlhaus" ? "UH" : msg.source}
+        {SOURCE_LABELS[msg.source] ?? msg.source}
       </span>
     </div>
   );
 }
 
-function StatusEntry({ msg }: { msg: FeedMessage }) {
+function StatusRow({ msg }: { msg: FeedMessage }) {
   return (
-    <div className="flex items-center gap-2 px-2 py-1.5 text-zinc-400 dark:text-zinc-500 text-xs">
-      <AlertCircle className="w-3 h-3 shrink-0" />
-      <span>{msg.message}</span>
+    <div
+      className="flex items-center gap-3 px-4 py-1.5 text-[11px]"
+      style={{ borderBottom: "1px solid #1a1a1e" }}
+    >
+      <span className="font-mono" style={{ color: ACCENT, opacity: 0.35 }}>{">"}</span>
+      <span className="font-mono" style={{ color: "#52525b" }}>
+        {msg.message}
+      </span>
     </div>
   );
 }
 
-function CompleteEntry({ msg }: { msg: FeedMessage }) {
+function CompleteRow({ msg }: { msg: FeedMessage }) {
   return (
-    <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-[#00ff8808] border border-[#00ff8820] text-[#00ff88] text-xs font-semibold">
-      <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-      {msg.message}
+    <div
+      className="flex items-center gap-2.5 px-4 py-2"
+      style={{ background: "#00ff8806", borderBottom: "1px solid #00ff8815" }}
+    >
+      <CheckCircle className="w-3.5 h-3.5 shrink-0" style={{ color: "#00ff88" }} />
+      <span className="text-[11px] font-mono font-semibold" style={{ color: "#00ff88" }}>
+        {msg.message}
+      </span>
     </div>
   );
 }

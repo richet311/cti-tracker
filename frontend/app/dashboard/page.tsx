@@ -187,7 +187,7 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0">
 
         {/* Top bar */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-[#09090b]/90 backdrop-blur-md">
+        <header className="sticky top-0 z-30 flex items-center gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-[#d5d9e8]/90 dark:bg-[#09090b]/90 backdrop-blur-md">
           {/* Mobile menu toggle */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}

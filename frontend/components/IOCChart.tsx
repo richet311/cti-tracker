@@ -34,8 +34,8 @@ export default function IOCChart({ data, dark = true }: Props) {
   }));
 
   const legendColor = dark ? "#94a3b8" : "#52525b";
-  const tooltipBg = dark ? "#111114" : "#ffffff";
-  const tooltipBorder = dark ? "#27272a" : "#e4e4e7";
+  const tooltipBg = dark ? "#111114" : "#f5f6fb";
+  const tooltipBorder = dark ? "#27272a" : "#d0d2df";
   const tooltipText = dark ? "#e4e4e7" : "#18181b";
 
   return (
