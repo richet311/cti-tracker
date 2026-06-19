@@ -2,10 +2,14 @@
 
 import { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Terminal, CheckCircle } from "lucide-react";
+import {
+  PlayIcon as Play,
+  TerminalIcon as Terminal,
+  CheckCircleIcon as CheckCircle,
+} from "@phosphor-icons/react";
 import { FeedMessage, IOC_TYPE_COLORS, SOURCE_COLORS, truncate } from "@/lib/api";
 
-const ACCENT = "#00c8ff";
+const ACCENT = "#60a5fa";
 
 const TYPE_LABELS: Record<string, string> = {
   hash_sha256: "SHA256",
@@ -57,39 +61,31 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
     >
       {/* ── Window chrome ─────────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-3 px-4 py-3 shrink-0"
+        className="flex items-center gap-3 px-4 py-2.5 shrink-0"
         style={{ background: "#18181b", borderBottom: "1px solid #27272a" }}
       >
-        {/* Traffic-light dots */}
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#3f3f46" }} />
-          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#3f3f46" }} />
-          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#3f3f46" }} />
-        </div>
-
         {/* Title */}
-        <div className="flex-1 flex items-center justify-center gap-2">
-          <Terminal className="w-3.5 h-3.5" style={{ color: "#52525b" }} />
-          <span className="text-[11px] font-mono" style={{ color: "#71717a" }}>
-            threat-intel-collector
-          </span>
-          {collecting && (
-            <motion.span
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ repeat: Infinity, duration: 1.2 }}
-              className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
-              style={{ color: ACCENT, background: `${ACCENT}15` }}
-            >
-              ● LIVE
-            </motion.span>
-          )}
-        </div>
+        <Terminal className="w-3.5 h-3.5 shrink-0" style={{ color: "#52525b" }} />
+        <span className="text-[11px] font-mono flex-1" style={{ color: "#71717a" }}>
+          threat-intel-collector
+        </span>
+
+        {collecting && (
+          <motion.span
+            animate={{ opacity: [1, 0.3, 1] }}
+            transition={{ repeat: Infinity, duration: 1.2 }}
+            className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+            style={{ color: ACCENT, background: `${ACCENT}15` }}
+          >
+            ● LIVE
+          </motion.span>
+        )}
 
         {/* Collect button */}
         <button
           onClick={onCollect}
           disabled={collecting}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold font-mono transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold font-mono transition-all cursor-pointer"
           style={
             collecting
               ? { background: "#27272a", color: "#52525b", cursor: "not-allowed" }

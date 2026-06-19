@@ -23,25 +23,22 @@ html:not(.dark) body {
   color: #09090b;
 }
 
-/* Subtle grid texture — both modes */
+/* Futuristic dot-grid texture */
 html.dark body::before,
 html:not(.dark) body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-size: 48px 48px;
   pointer-events: none;
   z-index: 0;
 }
 html.dark body::before {
-  background-image:
-    linear-gradient(rgba(0, 200, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 200, 255, 0.02) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(96, 165, 250, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 html:not(.dark) body::before {
-  background-image:
-    linear-gradient(rgba(0, 120, 200, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 120, 200, 0.06) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(0, 80, 160, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
 /* Scrollbar — dark */
