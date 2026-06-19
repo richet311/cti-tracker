@@ -2,8 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
-import { IOC, IOC_TYPE_COLORS, truncate } from "@/lib/api";
+import {
+  CaretLeftIcon as CaretLeft,
+  CaretRightIcon as CaretRight,
+  MagnifyingGlassIcon as MagnifyingGlass,
+  XIcon as X,
+} from "@phosphor-icons/react";
+import { IOC, IOC_TYPE_COLORS, SEVERITY_COLORS, truncate } from "@/lib/api";
 
 interface Props {
   iocs: IOC[];
@@ -11,28 +16,28 @@ interface Props {
 
 const TYPE_LABELS: Record<string, string> = {
   hash_sha256: "SHA-256",
-  hash_md5: "MD5",
-  hash_sha1: "SHA-1",
-  url: "URL",
-  ip: "IP",
-  domain: "Domain",
+  hash_md5:    "MD5",
+  hash_sha1:   "SHA-1",
+  url:         "URL",
+  ip:          "IP",
+  domain:      "Domain",
 };
 
 const FILTER_PILLS = [
-  { id: "all",        label: "All" },
-  { id: "hash_sha256",label: "SHA-256" },
-  { id: "hash_md5",   label: "MD5" },
-  { id: "url",        label: "URL" },
-  { id: "ip",         label: "IP" },
-  { id: "domain",     label: "Domain" },
+  { id: "all",         label: "All" },
+  { id: "hash_sha256", label: "SHA-256" },
+  { id: "hash_md5",    label: "MD5" },
+  { id: "url",         label: "URL" },
+  { id: "ip",          label: "IP" },
+  { id: "domain",      label: "Domain" },
 ];
 
-const ACCENT = "#00c8ff";
+const ACCENT    = "#60a5fa";
 const PAGE_SIZE = 15;
 
 export default function RecentIOCsTable({ iocs }: Props) {
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState("");
+  const [page, setPage]           = useState(0);
+  const [search, setSearch]       = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
   useEffect(() => { setPage(0); }, [search, typeFilter]);
@@ -51,7 +56,7 @@ export default function RecentIOCsTable({ iocs }: Props) {
   });
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const slice = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  const slice      = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <motion.div
@@ -75,18 +80,21 @@ export default function RecentIOCsTable({ iocs }: Props) {
       {/* Search + Filter bar */}
       <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500" />
+          <MagnifyingGlass
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500"
+          />
           <input
             type="text"
             placeholder="Search by value, family, or threat"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-8 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-800 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-[#00c8ff44] transition-colors"
+            className="w-full pl-8 pr-8 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-800 dark:text-zinc-300 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:border-blue-500/30 transition-colors"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+              aria-label="Clear search"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -101,16 +109,12 @@ export default function RecentIOCsTable({ iocs }: Props) {
               <button
                 key={pill.id}
                 onClick={() => setTypeFilter(pill.id)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-all font-medium ${
+                className={`text-xs px-3 py-1.5 rounded-full border transition-all font-medium cursor-pointer ${
                   isActive ? "" : "text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600"
                 }`}
                 style={
                   isActive
-                    ? {
-                        color,
-                        background: `${color}18`,
-                        borderColor: `${color}40`,
-                      }
+                    ? { color, background: `${color}18`, borderColor: `${color}40` }
                     : undefined
                 }
               >
@@ -129,6 +133,8 @@ export default function RecentIOCsTable({ iocs }: Props) {
               <th className="text-left px-6 py-3 font-medium">Type</th>
               <th className="text-left px-4 py-3 font-medium">Value</th>
               <th className="text-left px-4 py-3 font-medium">Family / Threat</th>
+              <th className="text-left px-4 py-3 font-medium">Severity</th>
+              <th className="text-left px-4 py-3 font-medium">Conf.</th>
               <th className="text-left px-4 py-3 font-medium">Source</th>
               <th className="text-left px-4 py-3 font-medium">First Seen</th>
             </tr>
@@ -136,9 +142,10 @@ export default function RecentIOCsTable({ iocs }: Props) {
           <tbody>
             {slice.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-14 text-center text-zinc-400 dark:text-zinc-600 text-sm">
+                <td colSpan={7} className="px-6 py-14 text-center text-zinc-400 dark:text-zinc-600 text-sm">
                   {iocs.length === 0
-                    ? <>No indicators yet — click <span className="text-zinc-600 dark:text-zinc-400 font-semibold">Live Feed</span> tab and hit Collect Now</>
+                    ? <>No indicators yet. Click the <span className="text-zinc-600 dark:text-zinc-400 font-semibold">Live Feed</span> tab and hit Collect Now.</>
+
                     : "No indicators match your search"}
                 </td>
               </tr>
@@ -155,8 +162,12 @@ export default function RecentIOCsTable({ iocs }: Props) {
                     <TypeBadge iocType={ioc.ioc_type} />
                   </td>
                   <td className="px-4 py-3">
-                    <span className="ioc-value text-zinc-700 dark:text-zinc-300">
-                      {truncate(ioc.value, 56)}
+                    <span
+                      className="ioc-value text-zinc-700 dark:text-zinc-300 font-mono text-xs cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                      title={ioc.value}
+                      onClick={() => navigator.clipboard.writeText(ioc.value)}
+                    >
+                      {truncate(ioc.value, 48)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -167,6 +178,12 @@ export default function RecentIOCsTable({ iocs }: Props) {
                     ) : (
                       <span className="text-zinc-300 dark:text-zinc-700 text-xs">—</span>
                     )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <SeverityBadge severity={ioc.severity ?? "medium"} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <ConfidenceBar value={ioc.confidence ?? 50} />
                   </td>
                   <td className="px-4 py-3">
                     <SourceBadge source={ioc.source ?? "manual"} />
@@ -192,16 +209,16 @@ export default function RecentIOCsTable({ iocs }: Props) {
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <CaretLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page === totalPages - 1}
-              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <ChevronRight className="w-4 h-4" />
+              <CaretRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -210,27 +227,57 @@ export default function RecentIOCsTable({ iocs }: Props) {
   );
 }
 
+// ── Badges ─────────────────────────────────────────────────────────────────────
+
 function TypeBadge({ iocType }: { iocType: string }) {
   const color = IOC_TYPE_COLORS[iocType] ?? "#94a3b8";
   return (
     <span
       className="text-[10px] font-bold px-2 py-0.5 rounded font-mono"
-      style={{
-        color,
-        background: `${color}18`,
-        border: `1px solid ${color}30`,
-      }}
+      style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}
     >
       {TYPE_LABELS[iocType] ?? iocType}
     </span>
   );
 }
 
+function SeverityBadge({ severity }: { severity: string }) {
+  const color = SEVERITY_COLORS[severity] ?? "#94a3b8";
+  return (
+    <span
+      className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
+      style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}
+    >
+      {severity}
+    </span>
+  );
+}
+
+function ConfidenceBar({ value }: { value: number }) {
+  const color =
+    value >= 85 ? "#ef4444" :
+    value >= 70 ? "#f97316" :
+    value >= 55 ? "#fbbf24" :
+    "#94a3b8";
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-12 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden shrink-0">
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${value}%`, background: color }}
+        />
+      </div>
+      <span className="text-[11px] font-mono tabular-nums text-zinc-500">{value}</span>
+    </div>
+  );
+}
+
 function SourceBadge({ source }: { source: string }) {
   const colors: Record<string, string> = {
-    malwarebazaar: "#00c8ff",
-    urlhaus: "#ff6b35",
-    manual: "#9f7aea",
+    malwarebazaar: "#00d4ff",
+    urlhaus:       "#ff6b35",
+    feodotracker:  "#ef4444",
+    manual:        "#9f7aea",
   };
   const s = source.split(",")[0].trim();
   const c = colors[s] ?? "#64748b";

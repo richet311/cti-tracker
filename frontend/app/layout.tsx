@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CTI Tracker — Threat Intelligence Platform",
+  title: "CTI Tracker: Threat Intelligence Platform",
   description: "Full-stack cyber threat intelligence platform. Collect IOCs, map MITRE ATT&CK TTPs, and produce finished intelligence reports.",
 };
 

@@ -1,7 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Shield, Hash, Layers, Clock } from "lucide-react";
+import {
+  ShieldIcon as Shield,
+  HashIcon as Hash,
+  StackIcon as Stack,
+  ClockIcon as Clock,
+} from "@phosphor-icons/react";
 import { Campaign } from "@/lib/api";
 
 interface Props {
@@ -35,7 +40,7 @@ export default function CampaignCards({ campaigns }: Props) {
 
       {campaigns.length === 0 ? (
         <div className="card p-8 text-center text-zinc-400 dark:text-zinc-600 text-sm">
-          No campaigns yet — create one with{" "}
+          No campaigns yet. Create one with{" "}
           <code className="text-zinc-600 dark:text-zinc-400 font-mono text-xs bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
             python main.py campaign create
           </code>
@@ -96,7 +101,7 @@ function CampaignItem({ campaign: c, index }: { campaign: Campaign; index: numbe
           <span>IOCs</span>
         </div>
         <div className="flex items-center gap-1.5 text-zinc-500 text-xs">
-          <Layers className="w-3 h-3 text-[#9f7aea]" />
+          <Stack className="w-3 h-3 text-[#9f7aea]" />
           <span className="text-zinc-700 dark:text-zinc-300 font-semibold">{c.ttp_count}</span>
           <span>TTPs</span>
         </div>
