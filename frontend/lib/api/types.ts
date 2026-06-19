@@ -1,11 +1,12 @@
-const BASE = "http://localhost:8000";
-
 export interface Stats {
   total_iocs: number;
   total_campaigns: number;
   total_reports: number;
+  total_watchlist: number;
   ioc_types: { ioc_type: string; cnt: number }[];
   top_families: { malware_family: string; cnt: number }[];
+  severity_counts: { severity: string; cnt: number }[];
+  source_counts: { source: string; cnt: number }[];
 }
 
 export interface IOC {
@@ -14,10 +15,28 @@ export interface IOC {
   ioc_type: string;
   malware_family: string | null;
   threat_type: string | null;
+  confidence: number;
+  severity: string;
   source: string | null;
+  source_count: number;
   first_seen: string | null;
   last_seen: string | null;
   created_at: string;
+}
+
+export interface WatchlistItem {
+  id: number;
+  ioc_id: number;
+  added_by: string;
+  reason: string | null;
+  priority: "low" | "medium" | "high";
+  added_at: string;
+  value: string;
+  ioc_type: string;
+  malware_family: string | null;
+  severity: string;
+  confidence: number;
+  source: string | null;
 }
 
 export interface Campaign {
@@ -55,45 +74,12 @@ export interface FeedMessage {
   timestamp: number;
 }
 
-export async function fetchStats(): Promise<Stats> {
-  const r = await fetch(`${BASE}/api/stats`);
-  return r.json();
-}
-
-export async function fetchIOCs(limit = 50): Promise<IOC[]> {
-  const r = await fetch(`${BASE}/api/iocs?limit=${limit}`);
-  return r.json();
-}
-
-export async function fetchCampaigns(): Promise<Campaign[]> {
-  const r = await fetch(`${BASE}/api/campaigns`);
-  return r.json();
-}
-
-export async function fetchReports(): Promise<Report[]> {
-  const r = await fetch(`${BASE}/api/reports`);
-  return r.json();
-}
-
-export const WS_COLLECT_URL = "ws://localhost:8000/ws/collect";
-
-export const IOC_TYPE_COLORS: Record<string, string> = {
-  hash_sha256: "#00d4ff",
-  hash_md5: "#9f7aea",
-  hash_sha1: "#60a5fa",
-  url: "#ff6b35",
-  ip: "#fbbf24",
-  domain: "#34d399",
-  unknown: "#94a3b8",
-};
-
-export const SOURCE_COLORS: Record<string, string> = {
-  malwarebazaar: "#00d4ff",
-  urlhaus: "#ff6b35",
-  manual: "#9f7aea",
-  system: "#94a3b8",
-};
-
-export function truncate(s: string, n: number) {
-  return s.length > n ? s.slice(0, n) + "…" : s;
+export interface AuditEntry {
+  id: number;
+  actor: string;
+  action: string;
+  target_type: string | null;
+  target_id: number | null;
+  details: string | null;
+  created_at: string;
 }
