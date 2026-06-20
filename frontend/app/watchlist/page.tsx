@@ -1,297 +1,34 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeftIcon as ArrowLeft,
   BookmarkSimpleIcon as BookmarkSimple,
   TrashIcon as Trash,
   PlusIcon as Plus,
   ShieldWarningIcon as ShieldWarning,
   ArrowClockwiseIcon as ArrowClockwise,
-  MagnifyingGlassIcon as MagnifyingGlass,
-  XCircleIcon as XCircle,
 } from "@phosphor-icons/react";
 import {
   fetchWatchlist,
   removeFromWatchlist,
-  addToWatchlist,
-  searchIOCs,
   WatchlistItem,
-  IOC,
   SEVERITY_COLORS,
-  IOC_TYPE_COLORS,
   SOURCE_COLORS,
   truncate,
 } from "@/lib/api";
+import Sidebar from "@/components/Sidebar";
+import { PriorityBadge, SeverityBadge, TypeBadge } from "@/components/shared/badges";
+import { AddModal } from "@/components/watchlist/AddModal";
 
 const ACCENT = "#60a5fa";
-
-// ── BrandMark ─────────────────────────────────────────────────────────────────
-
-function BrandMark({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 2.5L20 6.5V13.5C20 17.6 16.5 21.3 12 22.5C7.5 21.3 4 17.6 4 13.5V6.5L12 2.5Z"
-        stroke={ACCENT} strokeWidth="1.4" strokeLinejoin="round" fill={`${ACCENT}14`}
-      />
-      <circle cx="12" cy="13" r="2" fill={ACCENT} />
-      <line x1="12" y1="8.5" x2="12" y2="11" stroke={ACCENT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="12" y1="15" x2="12" y2="17.5" stroke={ACCENT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="7.5" y1="13" x2="10" y2="13" stroke={ACCENT} strokeWidth="1.3" strokeLinecap="round" />
-      <line x1="14" y1="13" x2="16.5" y2="13" stroke={ACCENT} strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-// ── Badges ────────────────────────────────────────────────────────────────────
-
-const PRIORITY_COLORS = {
-  high:   "#ef4444",
-  medium: "#fbbf24",
-  low:    "#94a3b8",
-};
-
-function PriorityBadge({ priority }: { priority: "low" | "medium" | "high" }) {
-  const color = PRIORITY_COLORS[priority];
-  return (
-    <span
-      className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-      style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}
-    >
-      {priority}
-    </span>
-  );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const color = SEVERITY_COLORS[severity] ?? "#94a3b8";
-  return (
-    <span
-      className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-      style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}
-    >
-      {severity}
-    </span>
-  );
-}
-
-function TypeBadge({ iocType }: { iocType: string }) {
-  const labels: Record<string, string> = {
-    hash_sha256: "SHA-256", hash_md5: "MD5", hash_sha1: "SHA-1",
-    url: "URL", ip: "IP", domain: "Domain",
-  };
-  const color = IOC_TYPE_COLORS[iocType] ?? "#94a3b8";
-  return (
-    <span
-      className="text-[10px] font-bold px-2 py-0.5 rounded font-mono"
-      style={{ color, background: `${color}18`, border: `1px solid ${color}30` }}
-    >
-      {labels[iocType] ?? iocType}
-    </span>
-  );
-}
-
-// ── Add to Watchlist Modal ─────────────────────────────────────────────────────
-
-function AddModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
-  const [q, setQ]                 = useState("");
-  const [results, setResults]     = useState<IOC[]>([]);
-  const [selected, setSelected]   = useState<IOC | null>(null);
-  const [reason, setReason]       = useState("");
-  const [priority, setPriority]   = useState<"low" | "medium" | "high">("medium");
-  const [searching, setSearching] = useState(false);
-  const [adding, setAdding]       = useState(false);
-  const [error, setError]         = useState("");
-
-  async function doSearch() {
-    if (!q.trim()) return;
-    setSearching(true);
-    try {
-      const data = await searchIOCs({ q: q.trim(), limit: 10 });
-      setResults(data);
-    } finally {
-      setSearching(false);
-    }
-  }
-
-  async function doAdd() {
-    if (!selected) return;
-    setAdding(true);
-    setError("");
-    try {
-      await addToWatchlist(selected.id, reason, priority);
-      onAdded();
-      onClose();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed. Are you logged in as analyst or admin?");
-    } finally {
-      setAdding(false);
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
-        className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: "#111114", border: "1px solid #27272a", borderTop: `1px solid ${ACCENT}25` }}
-      >
-        {/* Header */}
-        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid #1e1e22" }}>
-          <div className="flex items-center gap-2">
-            <BookmarkSimple className="w-4 h-4" style={{ color: ACCENT }} weight="fill" />
-            <span className="text-sm font-semibold text-zinc-200">Add to Watchlist</span>
-          </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 cursor-pointer transition-colors">
-            <XCircle className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="px-6 py-5 space-y-4">
-          {/* IOC Search */}
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-              Search IOC
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && doSearch()}
-                placeholder="Value, family, or threat type…"
-                className="flex-1 px-3 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 transition-colors"
-              />
-              <button
-                onClick={doSearch}
-                disabled={searching || !q.trim()}
-                className="px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-                style={{ background: ACCENT, color: "#09090b" }}
-              >
-                <MagnifyingGlass className="w-3.5 h-3.5" weight="bold" />
-              </button>
-            </div>
-          </div>
-
-          {/* Search results */}
-          {results.length > 0 && !selected && (
-            <div
-              className="rounded-lg overflow-hidden max-h-40 overflow-y-auto"
-              style={{ border: "1px solid #27272a" }}
-            >
-              {results.map((ioc) => (
-                <button
-                  key={ioc.id}
-                  onClick={() => setSelected(ioc)}
-                  className="w-full flex items-center gap-3 px-3 py-2 text-left text-xs hover:bg-white/[0.04] transition-colors cursor-pointer border-b last:border-0"
-                  style={{ borderColor: "#27272a" }}
-                >
-                  <TypeBadge iocType={ioc.ioc_type} />
-                  <span className="font-mono text-zinc-300 flex-1 truncate">{truncate(ioc.value, 38)}</span>
-                  <SeverityBadge severity={ioc.severity} />
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Selected IOC */}
-          {selected && (
-            <div
-              className="rounded-lg px-3 py-2.5 flex items-center gap-3"
-              style={{ background: `${ACCENT}0c`, border: `1px solid ${ACCENT}25` }}
-            >
-              <TypeBadge iocType={selected.ioc_type} />
-              <span className="font-mono text-xs text-zinc-300 flex-1 truncate">{truncate(selected.value, 40)}</span>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Priority */}
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-              Priority
-            </label>
-            <div className="flex gap-2">
-              {(["high", "medium", "low"] as const).map((p) => {
-                const color = PRIORITY_COLORS[p];
-                const isActive = priority === p;
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setPriority(p)}
-                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer"
-                    style={{
-                      background: isActive ? `${color}18` : "#18181b",
-                      border: `1px solid ${isActive ? `${color}40` : "#27272a"}`,
-                      color: isActive ? color : "#52525b",
-                    }}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Reason */}
-          <div>
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-              Reason <span className="text-zinc-700 normal-case font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Why is this IOC worth monitoring?"
-              className="w-full px-3 py-2 rounded-lg text-xs bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-500/40 transition-colors"
-            />
-          </div>
-
-          {error && (
-            <p className="text-xs text-red-400 px-3 py-2 rounded-lg" style={{ background: "#ef444415", border: "1px solid #ef444425" }}>
-              {error}
-            </p>
-          )}
-
-          <button
-            onClick={doAdd}
-            disabled={!selected || adding}
-            className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all mt-1"
-            style={{
-              background: !selected || adding ? "#27272a" : ACCENT,
-              color: !selected || adding ? "#52525b" : "#09090b",
-              cursor: !selected || adding ? "not-allowed" : "pointer",
-            }}
-          >
-            <BookmarkSimple className="w-4 h-4" weight="fill" />
-            {adding ? "Adding…" : "Add to Watchlist"}
-          </button>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function WatchlistPage() {
-  const [items, setItems]     = useState<WatchlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
+  const [items, setItems]       = useState<WatchlistItem[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [showAdd, setShowAdd]   = useState(false);
   const [removing, setRemoving] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -321,33 +58,25 @@ export default function WatchlistPage() {
 
   return (
     <>
-      <div className="min-h-screen" style={{ background: "#09090b", color: "#e4e4e7" }}>
-        {/* ── Navbar ─────────────────────────────────────────────────────── */}
-        <nav
-          className="sticky top-0 z-40 h-14 flex items-center px-6 gap-4"
-          style={{ background: "#09090b", borderBottom: "1px solid #1c1c20" }}
-        >
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
+      <div className="flex min-h-screen" style={{ background: "#09090b", color: "#e4e4e7" }}>
+        <Sidebar
+          active="overview"
+          onChange={() => {}}
+          watchlistCount={items.length}
+        />
+
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* ── Header ─────────────────────────────────────────────────── */}
+          <header
+            className="sticky top-0 z-30 h-14 flex items-center gap-3 px-5 shrink-0"
+            style={{ background: "rgba(9,9,11,0.92)", backdropFilter: "blur(12px)", borderBottom: "1px solid #1c1c20" }}
           >
-            <ArrowLeft className="w-4 h-4" weight="bold" />
-            <span className="text-xs font-medium">Dashboard</span>
-          </Link>
-
-          <div className="h-4 w-px bg-zinc-800 shrink-0" />
-
-          <div className="flex items-center gap-2">
-            <BrandMark size={16} />
-            <span className="font-bold text-sm tracking-tight">
-              <span className="text-zinc-100">Priority</span>
-              <span style={{ color: ACCENT }}> Watchlist</span>
-            </span>
-          </div>
-
-          <div className="flex-1" />
-
-          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-sm min-w-0">
+              <span className="text-zinc-600 shrink-0">Tools</span>
+              <span className="text-zinc-700">/</span>
+              <span className="text-zinc-300 font-medium">Priority Watchlist</span>
+            </div>
+            <div className="flex-1" />
             <button
               onClick={load}
               className="p-2 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors cursor-pointer"
@@ -363,27 +92,14 @@ export default function WatchlistPage() {
               <Plus className="w-3.5 h-3.5" weight="bold" />
               Add IOC
             </button>
-          </div>
-        </nav>
+          </header>
 
-        <div className="max-w-5xl mx-auto px-6 py-6">
+        <div className="max-w-5xl mx-auto px-6 py-6 w-full">
           {/* ── Summary cards ──────────────────────────────────────────── */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <SummaryCard
-              label="Total Watching"
-              value={items.length}
-              color={ACCENT}
-            />
-            <SummaryCard
-              label="High Priority"
-              value={highCount}
-              color={PRIORITY_COLORS.high}
-            />
-            <SummaryCard
-              label="Critical Severity"
-              value={criticalCount}
-              color={SEVERITY_COLORS.critical ?? "#ef4444"}
-            />
+            <SummaryCard label="Total Watching"   value={items.length}  color={ACCENT} />
+            <SummaryCard label="High Priority"    value={highCount}     color="#ef4444" />
+            <SummaryCard label="Critical Severity" value={criticalCount} color={SEVERITY_COLORS.critical ?? "#ef4444"} />
           </div>
 
           {/* ── Table ──────────────────────────────────────────────────── */}
@@ -391,7 +107,6 @@ export default function WatchlistPage() {
             className="rounded-xl overflow-hidden"
             style={{ border: "1px solid #27272a", background: "#111114" }}
           >
-            {/* Header */}
             <div
               className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: "1px solid #27272a", background: "#0e0e12" }}
@@ -500,7 +215,6 @@ export default function WatchlistPage() {
             )}
           </div>
 
-          {/* High-priority section hint */}
           {items.some((i) => i.priority === "high") && (
             <div
               className="mt-4 rounded-xl px-4 py-3 flex items-start gap-3"
@@ -518,9 +232,9 @@ export default function WatchlistPage() {
             </div>
           )}
         </div>
+        </div>
       </div>
 
-      {/* Add Modal */}
       <AnimatePresence>
         {showAdd && (
           <AddModal
@@ -535,27 +249,14 @@ export default function WatchlistPage() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function SummaryCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
+function SummaryCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div
       className="rounded-xl px-5 py-4"
       style={{ background: "#111114", border: "1px solid #27272a" }}
     >
       <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">{label}</p>
-      <p
-        className="text-2xl font-black tabular-nums"
-        style={{ color }}
-      >
-        {value}
-      </p>
+      <p className="text-2xl font-black tabular-nums" style={{ color }}>{value}</p>
     </div>
   );
 }

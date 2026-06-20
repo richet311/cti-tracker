@@ -1,0 +1,12 @@
+{
+  "name": "cti-tracker",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"server,next\" --prefix-colors \"cyan,blue\" \"npm --prefix server run dev\" \"npm --prefix frontend run dev\"",
+    "build": "npm --prefix frontend run build",
+    "start": "concurrently --names \"server,next\" --prefix-colors \"cyan,blue\" \"npm --prefix server run start\" \"npm --prefix frontend run start\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useConfirmSignOut } from "@/hooks/useConfirmSignOut";
@@ -114,6 +114,16 @@ function SidebarAvatar({ name, image }: { name?: string | null; image?: string |
 export default function Sidebar({ active, onChange, counts, collecting, watchlistCount }: Props) {
   const { data: session } = useSession();
   const signOut = useConfirmSignOut("/");
+  const pathname = usePathname();
+  const router = useRouter();
+
+  function handleTabClick(tab: Tab) {
+    if (pathname === "/dashboard") {
+      onChange(tab);
+    } else {
+      router.push(`/dashboard?tab=${tab}`);
+    }
+  }
 
   return (
     <aside
@@ -148,7 +158,7 @@ export default function Sidebar({ active, onChange, counts, collecting, watchlis
                 return (
                   <button
                     key={item.id}
-                    onClick={() => onChange(item.id)}
+                    onClick={() => handleTabClick(item.id)}
                     className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
                       isActive
                         ? ""
@@ -206,24 +216,44 @@ export default function Sidebar({ active, onChange, counts, collecting, watchlis
             Tools
           </p>
           <div className="space-y-0.5">
-            {TOOLS_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] transition-all cursor-pointer"
-              >
-                <item.Icon className="w-4 h-4 shrink-0" weight="regular" />
-                <span className="flex-1">{item.label}</span>
-                {item.href === "/watchlist" && watchlistCount !== undefined && watchlistCount > 0 && (
-                  <span
-                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded tabular-nums shrink-0"
-                    style={{ background: "#222226", color: "#52525b" }}
-                  >
-                    {watchlistCount}
-                  </span>
-                )}
-              </Link>
-            ))}
+            {TOOLS_NAV.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all cursor-pointer"
+                  style={isActive ? { background: `${ACCENT}0c`, color: ACCENT } : undefined}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-bar"
+                      className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
+                      style={{ background: ACCENT }}
+                      transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                    />
+                  )}
+                  <item.Icon
+                    className={`w-4 h-4 shrink-0 ${!isActive ? "text-zinc-500" : ""}`}
+                    weight={isActive ? "bold" : "regular"}
+                    style={isActive ? { color: ACCENT } : undefined}
+                  />
+                  <span className={`flex-1 ${!isActive ? "text-zinc-500 hover:text-zinc-200" : ""}`}>{item.label}</span>
+                  {item.href === "/watchlist" && watchlistCount !== undefined && watchlistCount > 0 && (
+                    <span
+                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded tabular-nums shrink-0"
+                      style={
+                        isActive
+                          ? { background: `${ACCENT}1a`, color: ACCENT }
+                          : { background: "#222226", color: "#52525b" }
+                      }
+                    >
+                      {watchlistCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
       </nav>

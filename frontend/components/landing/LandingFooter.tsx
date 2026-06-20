@@ -26,7 +26,7 @@ export function LandingFooter() {
               <li><a href="#capabilities" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">Capabilities</a></li>
               <li><a href="#how-it-works" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">How it works</a></li>
               <li><Link href="/dashboard" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">Dashboard</Link></li>
-              <li><Link href="/hunt" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">IOC Hunt</Link></li>
+              <li><Link href="/dashboard?tab=hunt" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">IOC Hunt</Link></li>
               <li><Link href="/watchlist" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">Watchlist</Link></li>
               <li><Link href="/login" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">Login</Link></li>
             </ul>

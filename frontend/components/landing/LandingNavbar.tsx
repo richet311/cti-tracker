@@ -2,14 +2,15 @@
 
 import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import {
   GearSixIcon as GearSix,
   SignOutIcon as SignOutIcon,
-  UserIcon as User,
+  XIcon as X,
 } from "@phosphor-icons/react";
 import { BrandMark } from "@/components/shared/BrandMark";
 import { ACCENT } from "./landing-constants";
+import { useConfirmSignOut } from "@/hooks/useConfirmSignOut";
 
 interface Props {
   scrolled: boolean;
@@ -45,14 +46,18 @@ function UserAvatar({ name, image }: { name?: string | null; image?: string | nu
 function AvatarDropdown({ session }: { session: NonNullable<ReturnType<typeof useSession>["data"]> }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const signOut = useConfirmSignOut("/");
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        signOut.cancel();
+      }
     }
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+  }, [signOut]);
 
   return (
     <div ref={ref} className="relative">
@@ -92,25 +97,41 @@ function AvatarDropdown({ session }: { session: NonNullable<ReturnType<typeof us
               <GearSix className="w-3.5 h-3.5 shrink-0" />
               Settings
             </Link>
-            <Link
-              href="/settings#profile"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.05] transition-colors cursor-pointer"
-            >
-              <User className="w-3.5 h-3.5 shrink-0" />
-              Profile
-            </Link>
           </div>
 
           {/* Sign out */}
           <div style={{ borderTop: "1px solid #1e1e22" }} className="py-1">
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-400 hover:text-red-300 hover:bg-red-500/[0.08] transition-colors cursor-pointer"
-            >
-              <SignOutIcon className="w-3.5 h-3.5 shrink-0" />
-              Sign out
-            </button>
+            {!signOut.confirming ? (
+              <button
+                onClick={signOut.request}
+                className="w-full flex items-center gap-2.5 px-4 py-2 text-[13px] text-red-400 hover:text-red-300 hover:bg-red-500/[0.08] transition-colors cursor-pointer"
+              >
+                <SignOutIcon className="w-3.5 h-3.5 shrink-0" />
+                Sign out
+              </button>
+            ) : (
+              <div className="px-4 py-2.5">
+                <p className="text-[11px] text-zinc-500 mb-2.5">Sure you want to sign out?</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={signOut.cancel}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[12px] text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+                    style={{ background: "#1c1c20", border: "1px solid #27272a" }}
+                  >
+                    <X className="w-3 h-3" />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={signOut.confirm}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[12px] font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                    style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
+                  >
+                    <SignOutIcon className="w-3 h-3" />
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

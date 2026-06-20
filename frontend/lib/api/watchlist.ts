@@ -4,6 +4,7 @@ import type { WatchlistItem } from "./types";
 
 export async function fetchWatchlist(): Promise<WatchlistItem[]> {
   const r = await fetch(`${BASE}/api/watchlist`);
+  if (!r.ok) return [];
   return r.json();
 }
 

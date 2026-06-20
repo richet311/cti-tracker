@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ListIcon as List,
   XIcon as X,
   ArrowClockwiseIcon as ArrowClockwise,
-  PlayIcon as Play,
 } from "@phosphor-icons/react";
 
-import Sidebar, { Tab } from "@/components/Sidebar";
+import Sidebar, { type Tab } from "@/components/Sidebar";
 import NavTabs from "@/components/NavTabs";
 import LiveFeed from "@/components/LiveFeed";
 import CampaignCards from "@/components/CampaignCard";
@@ -21,44 +20,29 @@ import { HuntTab } from "@/components/dashboard/HuntTab";
 
 import { useSession } from "next-auth/react";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import {
-  fetchStats,
-  fetchIOCs,
-  fetchCampaigns,
-  fetchReports,
-  fetchWatchlist,
-  setToken,
-  Stats,
-  IOC,
-  Campaign,
-  Report,
-} from "@/lib/api";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { setToken } from "@/lib/api";
 
 const ACCENT = "#60a5fa";
 
-const TAB_TITLES: Record<Tab, string> = {
-  overview:  "Overview",
-  iocs:      "Indicators of Compromise",
-  campaigns: "Tracked Campaigns",
-  reports:   "Intelligence Reports",
-  feed:      "Live Collection",
-  hunt:      "IOC Hunt",
-};
+const VALID_TABS = new Set<Tab>(["overview", "iocs", "campaigns", "reports", "feed", "hunt"]);
 
 export default function Dashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [authReady, setAuthReady]     = useState(false);
-  const [activeTab, setActiveTab]     = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [stats, setStats]                   = useState<Stats | null>(null);
-  const [iocs, setIocs]                     = useState<IOC[]>([]);
-  const [campaigns, setCampaigns]           = useState<Campaign[]>([]);
-  const [reports, setReports]               = useState<Report[]>([]);
-  const [watchlistCount, setWatchlistCount] = useState(0);
-  const [loading, setLoading]               = useState(true);
-  const [refreshing, setRefreshing]         = useState(false);
+  const initialTab = searchParams.get("tab") as Tab;
+  const [activeTab, setActiveTab] = useState<Tab>(
+    VALID_TABS.has(initialTab) ? initialTab : "overview"
+  );
+
+  const {
+    stats, iocs, campaigns, reports, watchlistCount,
+    loading, refreshing, load, refresh,
+  } = useDashboardData();
 
   // Auth guard
   useEffect(() => {
@@ -68,22 +52,10 @@ export default function Dashboard() {
     setAuthReady(true);
   }, [status, session, router]);
 
-  const loadAll = useCallback(async () => {
-    try {
-      const [s, i, c, r, w] = await Promise.all([
-        fetchStats(), fetchIOCs(200), fetchCampaigns(), fetchReports(), fetchWatchlist(),
-      ]);
-      setStats(s); setIocs(i); setCampaigns(c); setReports(r);
-      setWatchlistCount(w.length);
-    } catch { /* backend offline */ }
-    finally { setLoading(false); setRefreshing(false); }
-  }, []);
+  useEffect(() => { if (authReady) load(); }, [authReady, load]);
 
-  useEffect(() => { if (authReady) loadAll(); }, [authReady, loadAll]);
+  const { collecting, feedMessages, startCollection } = useWebSocket(load);
 
-  const { collecting, feedMessages, startCollection } = useWebSocket(loadAll);
-
-  function handleRefresh() { setRefreshing(true); loadAll(); }
   function handleTabChange(tab: Tab) { setActiveTab(tab); setSidebarOpen(false); }
 
   function handleStartCollection() {
@@ -144,17 +116,7 @@ export default function Dashboard() {
             {sidebarOpen ? <X className="w-4 h-4" weight="bold" /> : <List className="w-4 h-4" weight="bold" />}
           </button>
 
-          <div className="flex items-center gap-1.5 text-sm min-w-0">
-            <span className="text-zinc-600 shrink-0">Platform</span>
-            <span className="text-zinc-700">/</span>
-            <span className="text-zinc-300 font-medium truncate">{TAB_TITLES[activeTab]}</span>
-          </div>
-
           <div className="ml-auto flex items-center gap-2">
-            {loading && (
-              <span className="text-zinc-600 text-xs hidden sm:block">Connecting...</span>
-            )}
-
             {collecting && (
               <motion.div
                 animate={{ opacity: [1, 0.5, 1] }}
@@ -167,22 +129,27 @@ export default function Dashboard() {
               </motion.div>
             )}
 
-            <button
-              onClick={handleStartCollection}
-              disabled={collecting}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[13px] font-semibold transition-all cursor-pointer"
+            <div
+              className="hidden sm:flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full"
               style={
-                collecting
-                  ? { background: "#1c1c20", color: "#3f3f46", cursor: "not-allowed" }
-                  : { background: ACCENT, color: "#09090b", boxShadow: `0 0 20px ${ACCENT}28` }
+                loading
+                  ? { color: "#a1a1aa", background: "#27272a40", border: "1px solid #27272a" }
+                  : stats
+                  ? { color: "#22c55e", background: "#22c55e0d", border: "1px solid #22c55e22" }
+                  : { color: "#ef4444", background: "#ef444410", border: "1px solid #ef444425" }
               }
             >
-              <Play className="w-3.5 h-3.5" weight="bold" />
-              <span className="hidden sm:inline">{collecting ? "Running..." : "Run Collection"}</span>
-            </button>
+              <motion.span
+                animate={loading ? { opacity: [1, 0.3, 1] } : {}}
+                transition={{ repeat: Infinity, duration: 1.2 }}
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ background: loading ? "#a1a1aa" : stats ? "#22c55e" : "#ef4444" }}
+              />
+              {loading ? "Syncing" : stats ? "API Online" : "API Offline"}
+            </div>
 
             <button
-              onClick={handleRefresh}
+              onClick={refresh}
               disabled={refreshing || loading}
               className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors disabled:opacity-30 cursor-pointer"
               title="Refresh data"
