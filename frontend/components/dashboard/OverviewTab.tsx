@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import StatsCard from "@/components/StatsCard";
 import IOCChart from "@/components/IOCChart";
 import MalwareFamiliesChart from "@/components/MalwareFamiliesChart";
-import { ThreatRadarMini } from "@/components/dashboard/ThreatRadarMini";
+import { SeverityRing } from "@/components/dashboard/SeverityRing";
 import {
   DatabaseIcon as Database,
   ShieldIcon as ShieldCheck,
@@ -23,11 +23,10 @@ const DATA_SOURCES = [
 
 interface Props {
   stats: Stats | null;
-  dark: boolean;
   collecting: boolean;
 }
 
-export function OverviewTab({ stats, dark, collecting }: Props) {
+export function OverviewTab({ stats, collecting }: Props) {
   return (
     <motion.div
       key="overview"
@@ -67,8 +66,8 @@ export function OverviewTab({ stats, dark, collecting }: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-        <IOCChart data={stats?.ioc_types ?? []} dark={dark} />
-        <MalwareFamiliesChart data={stats?.top_families ?? []} dark={dark} />
+        <IOCChart data={stats?.ioc_types ?? []} dark={true} />
+        <MalwareFamiliesChart data={stats?.top_families ?? []} dark={true} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -137,16 +136,13 @@ export function OverviewTab({ stats, dark, collecting }: Props) {
           <div className="flex items-center gap-2 self-start mb-3 relative">
             <span className="w-[2px] h-3 rounded-full" style={{ background: ACCENT }} />
             <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "#52525b" }}>
-              Threat Radar
+              Severity Breakdown
             </p>
-            <motion.span
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ repeat: Infinity, duration: 1.4 }}
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: ACCENT }}
-            />
           </div>
-          <ThreatRadarMini size={200} />
+          <SeverityRing
+            data={stats?.severity_counts ?? []}
+            total={stats?.total_iocs ?? 0}
+          />
         </div>
 
         <div

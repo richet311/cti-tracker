@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -8,7 +9,6 @@ import {
   CaretRightIcon as CaretRight,
 } from "@phosphor-icons/react";
 
-import { useTheme } from "@/hooks/useTheme";
 import { LandingNavbar } from "@/components/landing/LandingNavbar";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { ThreatGlobe } from "@/components/landing/ThreatGlobe";
@@ -31,7 +31,8 @@ import {
 import { fadeIn } from "@/components/landing/landing-utils";
 
 export default function Landing() {
-  const { dark, mounted, toggleTheme } = useTheme();
+  const { data: session } = useSession();
+  const authed = session != null;
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -43,12 +44,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-[#d5d9e8] dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 transition-colors duration-200">
 
-      <LandingNavbar
-        dark={dark}
-        mounted={mounted}
-        scrolled={scrolled}
-        onToggleTheme={toggleTheme}
-      />
+      <LandingNavbar scrolled={scrolled} />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative pt-28 pb-20 px-6 overflow-hidden">
@@ -105,11 +101,11 @@ export default function Landing() {
                 className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-12"
               >
                 <Link
-                  href="/dashboard"
+                  href={authed ? "/dashboard" : "/login"}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
                   style={{ background: ACCENT, color: "#09090b", boxShadow: `0 0 24px ${ACCENT}35` }}
                 >
-                  Open Dashboard <ArrowRight className="w-4 h-4" weight="bold" />
+                  {authed ? "Open Dashboard" : "Get Started"} <ArrowRight className="w-4 h-4" weight="bold" />
                 </Link>
                 <a
                   href="#capabilities"
@@ -134,7 +130,7 @@ export default function Landing() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1.1, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
               >
-                <ThreatGlobe size={480} dark={dark} />
+                <ThreatGlobe size={480} dark={true} />
               </motion.div>
               <div
                 aria-hidden
@@ -243,17 +239,10 @@ export default function Landing() {
               <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-900 dark:text-white mb-4">
                 Watch threats stream<br />in real time.
               </h2>
-              <p className="text-zinc-500 dark:text-zinc-400 text-base leading-relaxed mb-8">
+              <p className="text-zinc-500 dark:text-zinc-400 text-base leading-relaxed">
                 Hit collect and watch IOCs stream live from MalwareBazaar and URLhaus
                 via WebSocket: SHA256 hashes, malicious URLs, IPs, and domains as they arrive.
               </p>
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
-                style={{ background: ACCENT, color: "#09090b", boxShadow: `0 0 20px ${ACCENT}30` }}
-              >
-                Open Dashboard <ArrowRight className="w-4 h-4" weight="bold" />
-              </Link>
             </motion.div>
 
             <motion.div {...fadeIn(0.1)}>
@@ -369,53 +358,36 @@ export default function Landing() {
       <SectionDivider />
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 overflow-hidden">
-        <div className="max-w-5xl mx-auto">
+      <section className="py-24 px-6 overflow-hidden relative">
+        <div
+          aria-hidden
+          className="absolute pointer-events-none"
+          style={{
+            top: "50%", left: "30%",
+            transform: "translate(-50%, -50%)",
+            width: 700, height: 700,
+            background: `radial-gradient(ellipse at center, ${ACCENT}0d 0%, ${ACCENT}04 40%, transparent 70%)`,
+            filter: "blur(40px)",
+          }}
+        />
+        <div className="max-w-5xl mx-auto relative z-10">
           <motion.div
             {...fadeIn()}
-            className="rounded-2xl overflow-hidden relative"
-            style={{
-              border: "1px solid #27272a",
-              borderTop: `1px solid ${ACCENT}28`,
-              background: "linear-gradient(145deg, #0d0d14 0%, #09090b 60%)",
-              boxShadow: `0 0 100px ${ACCENT}08 inset`,
-            }}
+            className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center"
           >
-            <div
-              className="absolute inset-0 pointer-events-none z-0"
-              style={{ background: `radial-gradient(ellipse at 20% 60%, ${ACCENT}09 0%, transparent 55%)` }}
-            />
+            <div className="py-6 md:py-10">
+              <SectionLabel>Get started</SectionLabel>
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-4">
+                Intelligence production,<br />start to finish.
+              </h2>
+              <p className="text-zinc-400 text-base mb-8 leading-relaxed max-w-sm">
+                Open the dashboard, run your first collection, and start building
+                threat intelligence in minutes.
+              </p>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center">
-              <div className="p-10 md:p-14 relative z-10">
-                <SectionLabel>Get started</SectionLabel>
-                <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-4">
-                  Intelligence production,<br />start to finish.
-                </h2>
-                <p className="text-zinc-400 text-base mb-8 leading-relaxed max-w-sm">
-                  Open the dashboard, run your first collection, and start building
-                  threat intelligence in minutes.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Link
-                    href="/dashboard"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
-                    style={{ background: ACCENT, color: "#09090b", boxShadow: `0 0 28px ${ACCENT}40` }}
-                  >
-                    Open Dashboard <ArrowRight className="w-4 h-4" weight="bold" />
-                  </Link>
-                  <a
-                    href="#capabilities"
-                    className="inline-flex items-center gap-1.5 px-6 py-3 rounded-lg border border-zinc-800 text-zinc-400 text-sm font-medium hover:border-zinc-600 hover:text-zinc-100 transition-colors cursor-pointer"
-                  >
-                    View capabilities <CaretRight className="w-4 h-4" />
-                  </a>
-                </div>
-              </div>
-
-              <div className="hidden md:flex items-center justify-center overflow-hidden relative z-10" style={{ width: 460, height: 420 }}>
-                <ThreatRadar size={390} dark={dark} />
-              </div>
+            <div className="hidden md:flex items-center justify-center" style={{ width: 460, height: 420 }}>
+              <ThreatRadar size={390} dark={true} />
             </div>
           </motion.div>
         </div>

@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ListIcon as List,
   XIcon as X,
-  SunIcon as Sun,
-  MoonIcon as Moon,
   ArrowClockwiseIcon as ArrowClockwise,
   PlayIcon as Play,
 } from "@phosphor-icons/react";
@@ -18,8 +17,9 @@ import CampaignCards from "@/components/CampaignCard";
 import RecentIOCsTable from "@/components/RecentIOCsTable";
 import ReportsView from "@/components/ReportsView";
 import { OverviewTab } from "@/components/dashboard/OverviewTab";
+import { HuntTab } from "@/components/dashboard/HuntTab";
 
-import { useTheme } from "@/hooks/useTheme";
+import { useSession } from "next-auth/react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   fetchStats,
@@ -27,6 +27,7 @@ import {
   fetchCampaigns,
   fetchReports,
   fetchWatchlist,
+  setToken,
   Stats,
   IOC,
   Campaign,
@@ -41,20 +42,31 @@ const TAB_TITLES: Record<Tab, string> = {
   campaigns: "Tracked Campaigns",
   reports:   "Intelligence Reports",
   feed:      "Live Collection",
+  hunt:      "IOC Hunt",
 };
 
 export default function Dashboard() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [authReady, setAuthReady]     = useState(false);
   const [activeTab, setActiveTab]     = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { dark, mounted, toggleTheme } = useTheme();
 
-  const [stats, setStats]           = useState<Stats | null>(null);
-  const [iocs, setIocs]             = useState<IOC[]>([]);
-  const [campaigns, setCampaigns]   = useState<Campaign[]>([]);
-  const [reports, setReports]       = useState<Report[]>([]);
+  const [stats, setStats]                   = useState<Stats | null>(null);
+  const [iocs, setIocs]                     = useState<IOC[]>([]);
+  const [campaigns, setCampaigns]           = useState<Campaign[]>([]);
+  const [reports, setReports]               = useState<Report[]>([]);
   const [watchlistCount, setWatchlistCount] = useState(0);
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading]               = useState(true);
+  const [refreshing, setRefreshing]         = useState(false);
+
+  // Auth guard
+  useEffect(() => {
+    if (status === "loading") return;
+    if (status === "unauthenticated") { router.replace("/login"); return; }
+    if (session?.accessToken) setToken(session.accessToken);
+    setAuthReady(true);
+  }, [status, session, router]);
 
   const loadAll = useCallback(async () => {
     try {
@@ -67,7 +79,7 @@ export default function Dashboard() {
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { if (authReady) loadAll(); }, [authReady, loadAll]);
 
   const { collecting, feedMessages, startCollection } = useWebSocket(loadAll);
 
@@ -84,6 +96,8 @@ export default function Dashboard() {
     campaigns: stats?.total_campaigns,
     reports:   stats?.total_reports,
   };
+
+  if (!authReady) return null;
 
   return (
     <div className="flex min-h-screen">
@@ -167,16 +181,6 @@ export default function Dashboard() {
               <span className="hidden sm:inline">{collecting ? "Running..." : "Run Collection"}</span>
             </button>
 
-            {mounted && (
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors cursor-pointer"
-                aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </button>
-            )}
-
             <button
               onClick={handleRefresh}
               disabled={refreshing || loading}
@@ -195,7 +199,7 @@ export default function Dashboard() {
         <main className="flex-1 p-5 max-w-[1400px] w-full mx-auto">
 
           {activeTab === "overview" && (
-            <OverviewTab stats={stats} dark={dark} collecting={collecting} />
+            <OverviewTab stats={stats} collecting={collecting} />
           )}
 
           {activeTab === "iocs" && (
@@ -228,8 +232,14 @@ export default function Dashboard() {
             </motion.div>
           )}
 
+          {activeTab === "hunt" && (
+            <motion.div key="hunt" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+              <HuntTab />
+            </motion.div>
+          )}
+
           <footer className="mt-10 text-center text-zinc-700 text-xs">
-            CTI Tracker &nbsp;&middot;&nbsp; MalwareBazaar &middot; URLhaus &middot; MITRE ATT&amp;CK
+            CTI Tracker &nbsp;&middot;&nbsp; MalwareBazaar &middot; URLhaus &middot; FeodoTracker
           </footer>
         </main>
       </div>

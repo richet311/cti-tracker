@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Shield, Clock, Tag } from "lucide-react";
+import { FileText, Shield, Clock, Tag } from "@phosphor-icons/react";
 import { Report } from "@/lib/api";
 
 interface Props {
@@ -30,11 +30,7 @@ export default function ReportsView({ reports }: Props) {
         <FileText className="w-10 h-10 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
         <p className="text-zinc-500 text-sm mb-1">No reports generated yet</p>
         <p className="text-zinc-400 dark:text-zinc-600 text-xs">
-          Run{" "}
-          <code className="text-zinc-600 dark:text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-            python main.py report generate
-          </code>{" "}
-          to produce your first intelligence report
+          Open a campaign and click <span className="font-semibold text-zinc-500">Generate Report</span> to produce your first intelligence report
         </p>
       </div>
     );

@@ -7,9 +7,10 @@ import {
   UsersThreeIcon as UsersThree,
   FileTextIcon as FileText,
   WifiHighIcon as WifiHigh,
+  MagnifyingGlassIcon as MagnifyingGlass,
 } from "@phosphor-icons/react";
 
-export type Tab = "overview" | "iocs" | "campaigns" | "reports" | "feed";
+export type Tab = "overview" | "iocs" | "campaigns" | "reports" | "feed" | "hunt";
 
 interface Counts {
   iocs?: number;
@@ -32,10 +33,11 @@ type PhosphorIcon = React.ComponentType<{
 
 const TABS: { id: Tab; label: string; Icon: PhosphorIcon; countKey?: keyof Counts }[] = [
   { id: "overview",  label: "Overview",  Icon: SquaresFour },
-  { id: "iocs",      label: "IOCs",       Icon: Hash,         countKey: "iocs" },
-  { id: "campaigns", label: "Campaigns",  Icon: UsersThree,   countKey: "campaigns" },
-  { id: "reports",   label: "Reports",    Icon: FileText,      countKey: "reports" },
   { id: "feed",      label: "Live Feed",  Icon: WifiHigh },
+  { id: "iocs",      label: "IOCs",       Icon: Hash,           countKey: "iocs" },
+  { id: "hunt",      label: "IOC Hunt",   Icon: MagnifyingGlass },
+  { id: "campaigns", label: "Campaigns",  Icon: UsersThree,     countKey: "campaigns" },
+  { id: "reports",   label: "Reports",    Icon: FileText,       countKey: "reports" },
 ];
 
 const ACCENT = "#00c8ff";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { WS_COLLECT_URL } from "@/lib/api";
+import { WS_COLLECT_URL, getToken } from "@/lib/api";
 import type { FeedMessage } from "@/lib/api";
 
 let msgCounter = 0;
@@ -16,7 +16,8 @@ export function useWebSocket(onComplete: () => void) {
     setCollecting(true);
     setFeedMessages([]);
 
-    const ws = new WebSocket(WS_COLLECT_URL);
+    const token = getToken() ?? "";
+    const ws = new WebSocket(`${WS_COLLECT_URL}?token=${encodeURIComponent(token)}`);
     wsRef.current = ws;
 
     ws.onmessage = (e) => {

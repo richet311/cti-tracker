@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { useConfirmSignOut } from "@/hooks/useConfirmSignOut";
 import { BrandMark } from "@/components/shared/BrandMark";
 import {
   SquaresFourIcon as SquaresFour,
@@ -11,9 +14,10 @@ import {
   WifiHighIcon as WifiHigh,
   MagnifyingGlassIcon as MagnifyingGlass,
   BookmarkSimpleIcon as BookmarkSimple,
-  DownloadSimpleIcon as DownloadSimple,
+  GearSixIcon as GearSix,
   ArrowLeftIcon as ArrowLeft,
-  LockKeyIcon as LockKey,
+  SignOutIcon,
+  XIcon as X,
 } from "@phosphor-icons/react";
 
 export type Tab =
@@ -21,7 +25,8 @@ export type Tab =
   | "iocs"
   | "campaigns"
   | "reports"
-  | "feed";
+  | "feed"
+  | "hunt";
 
 const ACCENT = "#60a5fa";
 
@@ -31,24 +36,45 @@ type PhosphorIcon = React.ComponentType<{
   style?: React.CSSProperties;
 }>;
 
-const PLATFORM_NAV: { id: Tab; label: string; Icon: PhosphorIcon }[] = [
-  { id: "overview",  label: "Overview",  Icon: SquaresFour },
-  { id: "iocs",      label: "IOCs",       Icon: Hash },
-  { id: "campaigns", label: "Campaigns",  Icon: UsersThree },
-  { id: "reports",   label: "Reports",    Icon: FileText },
-  { id: "feed",      label: "Live Feed",  Icon: WifiHigh },
+type NavSection = {
+  label: string;
+  items: { id: Tab; label: string; Icon: PhosphorIcon }[];
+};
+
+const PLATFORM_SECTIONS: NavSection[] = [
+  {
+    label: "Overview",
+    items: [
+      { id: "overview", label: "Overview", Icon: SquaresFour },
+    ],
+  },
+  {
+    label: "Collect",
+    items: [
+      { id: "feed", label: "Live Feed", Icon: WifiHigh },
+    ],
+  },
+  {
+    label: "Analyze",
+    items: [
+      { id: "iocs",      label: "IOCs",      Icon: Hash },
+      { id: "hunt",      label: "IOC Hunt",  Icon: MagnifyingGlass },
+      { id: "campaigns", label: "Campaigns", Icon: UsersThree },
+    ],
+  },
+  {
+    label: "Report",
+    items: [
+      { id: "reports", label: "Reports", Icon: FileText },
+    ],
+  },
 ];
 
-const TOOLS_NAV: { href: string; label: string; Icon: PhosphorIcon; badge?: string }[] = [
-  { href: "/hunt",      label: "IOC Hunt",   Icon: MagnifyingGlass, badge: "Search" },
-  { href: "/watchlist", label: "Watchlist",  Icon: BookmarkSimple },
+const TOOLS_NAV: { href: string; label: string; Icon: PhosphorIcon }[] = [
+  { href: "/watchlist", label: "Watchlist", Icon: BookmarkSimple },
+  { href: "/settings",  label: "Settings",  Icon: GearSix },
 ];
 
-const FEED_SOURCES = [
-  { label: "MalwareBazaar", ok: true },
-  { label: "URLhaus",        ok: true },
-  { label: "FeodoTracker",   ok: true },
-];
 
 interface Props {
   active: Tab;
@@ -58,7 +84,37 @@ interface Props {
   watchlistCount?: number;
 }
 
+function SidebarAvatar({ name, image }: { name?: string | null; image?: string | null }) {
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={name ?? "User"}
+        className="w-7 h-7 rounded-full object-cover shrink-0"
+        style={{ border: `1.5px solid ${ACCENT}40` }}
+      />
+    );
+  }
+  const initials = (name ?? "?")
+    .split(/[\s_]/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <div
+      className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+      style={{ background: `${ACCENT}20`, color: ACCENT, border: `1.5px solid ${ACCENT}35` }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 export default function Sidebar({ active, onChange, counts, collecting, watchlistCount }: Props) {
+  const { data: session } = useSession();
+  const signOut = useConfirmSignOut("/");
+
   return (
     <aside
       className="hidden md:flex flex-col w-[220px] shrink-0 min-h-screen"
@@ -77,73 +133,74 @@ export default function Sidebar({ active, onChange, counts, collecting, watchlis
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
-        {/* Platform tabs */}
-        <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.2em] px-3 pb-2 text-zinc-600">
-            Platform
-          </p>
-          <div className="space-y-0.5">
-            {PLATFORM_NAV.map((item) => {
-              const isActive = item.id === active;
-              const count = counts?.[item.id];
-              const isLive = item.id === "feed" && collecting;
+      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
+        {PLATFORM_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] px-3 pb-2 text-zinc-600">
+              {section.label}
+            </p>
+            <div className="space-y-0.5">
+              {section.items.map((item) => {
+                const isActive = item.id === active;
+                const count = counts?.[item.id];
+                const isLive = item.id === "feed" && collecting;
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onChange(item.id)}
-                  className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
-                    isActive
-                      ? ""
-                      : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]"
-                  }`}
-                  style={isActive ? { background: `${ACCENT}0c`, color: ACCENT } : undefined}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="sidebar-bar"
-                      className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
-                      style={{ background: ACCENT }}
-                      transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onChange(item.id)}
+                    className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
+                      isActive
+                        ? ""
+                        : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]"
+                    }`}
+                    style={isActive ? { background: `${ACCENT}0c`, color: ACCENT } : undefined}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="sidebar-bar"
+                        className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
+                        style={{ background: ACCENT }}
+                        transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                      />
+                    )}
+
+                    <item.Icon
+                      className="w-4 h-4 shrink-0"
+                      weight={isActive ? "bold" : "regular"}
+                      style={{ color: isActive ? ACCENT : "inherit" }}
                     />
-                  )}
+                    <span className="flex-1 text-left">{item.label}</span>
 
-                  <item.Icon
-                    className="w-4 h-4 shrink-0"
-                    weight={isActive ? "bold" : "regular"}
-                    style={{ color: isActive ? ACCENT : "inherit" }}
-                  />
-                  <span className="flex-1 text-left">{item.label}</span>
+                    {isLive && (
+                      <motion.span
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.2 }}
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ background: ACCENT }}
+                      />
+                    )}
 
-                  {isLive && (
-                    <motion.span
-                      animate={{ opacity: [1, 0.3, 1] }}
-                      transition={{ repeat: Infinity, duration: 1.2 }}
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ background: ACCENT }}
-                    />
-                  )}
-
-                  {!isLive && count !== undefined && count > 0 && (
-                    <span
-                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded tabular-nums shrink-0"
-                      style={
-                        isActive
-                          ? { background: `${ACCENT}1a`, color: ACCENT }
-                          : { background: "#222226", color: "#52525b" }
-                      }
-                    >
-                      {count > 9999 ? `${(count / 1000).toFixed(1)}k` : count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                    {!isLive && count !== undefined && count > 0 && (
+                      <span
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded tabular-nums shrink-0"
+                        style={
+                          isActive
+                            ? { background: `${ACCENT}1a`, color: ACCENT }
+                            : { background: "#222226", color: "#52525b" }
+                        }
+                      >
+                        {count > 9999 ? `${(count / 1000).toFixed(1)}k` : count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ))}
 
-        {/* Tools (links to other pages) */}
+        {/* Tools */}
         <div>
           <p className="text-[9px] font-bold uppercase tracking-[0.2em] px-3 pb-2 text-zinc-600">
             Tools
@@ -167,48 +224,67 @@ export default function Sidebar({ active, onChange, counts, collecting, watchlis
                 )}
               </Link>
             ))}
-            <Link
-              href="/login"
-              className="relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04] transition-all cursor-pointer"
-            >
-              <LockKey className="w-4 h-4 shrink-0" weight="regular" />
-              <span className="flex-1">Login</span>
-            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Feed status + back */}
+      {/* Bottom: user row */}
       <div className="px-3 pb-4" style={{ borderTop: "1px solid #1c1c20" }}>
-        <div
-          className="rounded-xl px-3 py-3 mt-3 mb-2"
-          style={{ background: "#111114", border: "1px solid #1e1e22" }}
-        >
-          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600 mb-3">
-            Feed Status
-          </p>
-          <div className="space-y-2">
-            {FEED_SOURCES.map((s) => (
-              <div key={s.label} className="flex items-center justify-between">
-                <span className="text-[11px] text-zinc-500">{s.label}</span>
-                <div className="flex items-center gap-1.5">
-                  <motion.span
-                    animate={s.ok ? { opacity: [1, 0.4, 1] } : {}}
-                    transition={{ repeat: Infinity, duration: 2.4 }}
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: s.ok ? "#22c55e" : "#ef4444" }}
-                  />
-                  <span
-                    className="text-[9px] font-bold uppercase tracking-wide"
-                    style={{ color: s.ok ? "#22c55e" : "#ef4444" }}
+        {session && (
+          <div className="mt-3 rounded-xl overflow-hidden" style={{ background: "#111114", border: "1px solid #1e1e22" }}>
+            <div className="flex items-center gap-2.5 px-3 py-2.5">
+              <SidebarAvatar name={session.user?.name} image={session.user?.image} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-zinc-300 truncate">
+                  {session.user?.name ?? "Analyst"}
+                </p>
+                <p className="text-[10px] text-zinc-600 truncate">
+                  {session.user?.email ?? "analyst"}
+                </p>
+              </div>
+              {!signOut.confirming ? (
+                <button
+                  onClick={signOut.request}
+                  title="Sign out"
+                  className="p-1 rounded text-zinc-600 hover:text-red-400 transition-colors cursor-pointer shrink-0"
+                >
+                  <SignOutIcon className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <button
+                  onClick={signOut.cancel}
+                  title="Cancel"
+                  className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {signOut.confirming && (
+              <div
+                className="px-3 py-2.5 flex items-center justify-between"
+                style={{ borderTop: "1px solid #1e1e22" }}
+              >
+                <span className="text-[11px] text-zinc-500">Sign out?</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={signOut.cancel}
+                    className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
                   >
-                    {s.ok ? "live" : "err"}
-                  </span>
+                    Cancel
+                  </button>
+                  <button
+                    onClick={signOut.confirm}
+                    className="text-[11px] font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                  >
+                    Sign out
+                  </button>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        )}
 
         <Link
           href="/"
