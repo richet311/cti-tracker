@@ -1,22 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-.venv/
-venv/
-env/
-ENV/
-pip-wheel-metadata/
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
 # Local data and generated output
-data/cti_tracker.db
-data/mitre_attack_cache.json
+data/
 reports/*.md
 !reports/.gitkeep
 
@@ -34,6 +17,9 @@ frontend/dist/
 frontend/.turbo/
 frontend/coverage/
 frontend/*.tsbuildinfo
+
+# Node server
+server/node_modules/
 
 # Logs
 *.log
