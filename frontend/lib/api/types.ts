@@ -56,8 +56,18 @@ export interface Report {
   title: string;
   report_type: string;
   tlp: string;
+  content?: string;
   created_at: string;
+  campaign_id?: number | null;
   campaign_name: string | null;
+}
+
+export interface TTP {
+  id?: number;
+  campaign_id: number;
+  tactic: string;
+  technique_id: string;
+  technique_name?: string | null;
 }
 
 export interface FeedMessage {

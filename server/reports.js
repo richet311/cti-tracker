@@ -25,8 +25,8 @@ function nowUtc() {
   return new Date().toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
 }
 
-function generateTacticalReport(campaignId, tlp = "TLP:WHITE") {
-  const summary = getCampaignSummary(campaignId);
+async function generateTacticalReport(campaignId, tlp = "TLP:WHITE") {
+  const summary = await getCampaignSummary(campaignId);
   if (!summary) return [null, "Campaign not found."];
 
   const { campaign: c } = summary;
@@ -79,7 +79,7 @@ function generateTacticalReport(campaignId, tlp = "TLP:WHITE") {
   lines.push(
     "## Defensive Recommendations", "",
     "1. **Block listed IOCs** at perimeter controls (firewall, proxy, DNS sinkhole).",
-    "2. **Retrospective hunt** — search SIEM and EDR telemetry for historical hits.",
+    "2. **Retrospective hunt**: search SIEM and EDR telemetry for historical hits.",
     "3. **Validate detection coverage** against each observed ATT&CK technique.",
     "4. **Review ATT&CK mitigations** at attack.mitre.org for each technique ID.",
     "5. **Increase logging** on assets targeted by this adversary's known sectors.",

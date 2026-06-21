@@ -32,8 +32,8 @@ export const CAPABILITIES = [
     num: "01",
     title: "Live IOC Collection",
     Icon: Broadcast,
-    desc: "WebSocket-powered streaming from MalwareBazaar and URLhaus. Watch indicators appear in real time as they're pulled from active threat feeds.",
-    tags: ["MalwareBazaar", "URLhaus", "WebSocket"],
+    desc: "WebSocket-powered streaming from MalwareBazaar, URLhaus, and FeodoTracker. Watch indicators appear in real time as they're pulled from active threat feeds.",
+    tags: ["MalwareBazaar", "URLhaus", "FeodoTracker", "WebSocket"],
     showPreview: true,
   },
   {
@@ -67,7 +67,7 @@ export const STEPS = [
     num: "01",
     title: "Collect",
     Icon: Database,
-    desc: "Pull IOCs from live threat feeds via WebSocket. MalwareBazaar samples and URLhaus URLs stream directly into your local database in real time.",
+    desc: "Pull IOCs from live threat feeds via WebSocket. MalwareBazaar samples, URLhaus malicious URLs, and FeodoTracker C2 IPs stream directly into your local database in real time.",
   },
   {
     num: "02",
@@ -99,17 +99,17 @@ export const SOURCES = [
     desc: "Malicious URLs and domains from community-submitted threat intelligence reports.",
   },
   {
-    abbr: "TTP",
-    name: "MITRE ATT&CK",
-    color: "#9f7aea",
-    status: "Framework",
-    desc: "500+ adversary techniques for TTP mapping, procedure tagging, and campaign enrichment.",
+    abbr: "FT",
+    name: "FeodoTracker",
+    color: "#ef4444",
+    status: "Active",
+    desc: "C2 botnet IP addresses linked to Emotet, Qakbot, and other banking trojans.",
   },
 ];
 
 export const STATS = [
   { value: "6",   suffix: "",  label: "IOC Types" },
   { value: "500", suffix: "+", label: "MITRE TTPs" },
-  { value: "2",   suffix: "",  label: "Threat Feeds" },
+  { value: "3",   suffix: "",  label: "Threat Feeds" },
   { value: "4",   suffix: "",  label: "TLP Levels" },
 ];

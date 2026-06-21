@@ -1,11 +1,11 @@
 const db = require("../db");
 
-function getCampaignSummary(campaignId) {
-  const campaign = db.getCampaign(campaignId);
+async function getCampaignSummary(campaignId) {
+  const campaign = await db.getCampaign(campaignId);
   if (!campaign) return null;
 
-  const iocs = db.getCampaignIocs(campaignId);
-  const ttps = db.getCampaignTtps(campaignId);
+  const iocs = await db.getCampaignIocs(campaignId);
+  const ttps = await db.getCampaignTtps(campaignId);
 
   const iocByType = {};
   const families = new Set();

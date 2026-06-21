@@ -11,6 +11,7 @@ import {
   ArrowClockwiseIcon as ArrowClockwise,
 } from "@phosphor-icons/react";
 import { searchIOCs, IOC, SEVERITY_COLORS, truncate } from "@/lib/api";
+import { HelpTip } from "@/components/shared/HelpTip";
 import { BASE } from "@/lib/api/constants";
 import {
   SeverityBadge,
@@ -77,9 +78,20 @@ export function HuntTab() {
     <div>
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-zinc-600 text-sm font-semibold uppercase tracking-widest">
-          IOC Hunt
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-zinc-600 text-sm font-semibold uppercase tracking-widest">
+            IOC Hunt
+          </h2>
+          <HelpTip
+            title="IOC Hunt"
+            steps={[
+              "Type any value, hash, IP, domain, or keyword to search your IOC database.",
+              "Use the filter panel to narrow by type, severity, source, or confidence score.",
+              "Results update automatically as you type.",
+              "Export matching results as STIX 2.1 (structured) or CSV (spreadsheet).",
+            ]}
+          />
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.open(`${BASE}/api/export/stix`, "_blank")}

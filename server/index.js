@@ -20,6 +20,7 @@ const { buildStixBundle }            = require("./stix");
 const { getRecentSamples }           = require("./collectors/malwarebazaar");
 const { getRecentUrls }              = require("./collectors/urlhaus");
 const { getC2Ips }                   = require("./collectors/feodotracker");
+const { fetchMitreData }             = require("./collectors/mitre");
 
 const app = express();
 app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"], credentials: true }));
@@ -30,7 +31,7 @@ const loginLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { detail: "Too many login attempts — try again in 15 minutes" },
+  message: { detail: "Too many login attempts. Try again in 15 minutes." },
 });
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -247,6 +248,17 @@ app.get("/api/iocs/:id/notes", async (req, res) => {
   }
 });
 
+app.delete("/api/iocs/:id", requireAnalyst, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.deleteIoc(id);
+    await db.logAudit(req.user.sub, "delete", "ioc", id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ detail: e.message });
+  }
+});
+
 // ── Watchlist ─────────────────────────────────────────────────────────────────
 
 app.get("/api/watchlist", async (_req, res) => {
@@ -285,6 +297,24 @@ app.delete("/api/watchlist/:id", requireAnalyst, async (req, res) => {
 
 // ── Campaigns ─────────────────────────────────────────────────────────────────
 
+app.post("/api/campaigns", requireAnalyst, async (req, res) => {
+  try {
+    const { name, threat_actor, motivation = "unknown", status = "active", description } = req.body;
+    if (!name?.trim()) return res.status(400).json({ detail: "name is required" });
+    const validMotivations = ["espionage", "financial", "disruptive", "hacktivism", "unknown"];
+    const validStatuses    = ["active", "monitoring", "closed"];
+    if (!validMotivations.includes(motivation)) return res.status(400).json({ detail: "invalid motivation" });
+    if (!validStatuses.includes(status))        return res.status(400).json({ detail: "invalid status" });
+    const id = await db.createCampaign(
+      name.trim(), threat_actor?.trim() || null, motivation, status, description?.trim() || null
+    );
+    await db.logAudit(req.user.sub, "create", "campaign", id, { name });
+    res.json({ id, name: name.trim(), motivation, status });
+  } catch (e) {
+    res.status(e.message?.includes("unique") ? 409 : 500).json({ detail: e.message });
+  }
+});
+
 app.get("/api/campaigns", async (_req, res) => {
   try {
     res.json(await db.listCampaigns());
@@ -303,6 +333,46 @@ app.get("/api/campaigns/:id", async (req, res) => {
   }
 });
 
+app.get("/api/campaigns/:id/iocs", async (req, res) => {
+  try {
+    res.json(await db.getCampaignIocs(parseInt(req.params.id)));
+  } catch (e) { res.status(500).json({ detail: e.message }); }
+});
+
+app.delete("/api/campaigns/:id/iocs/:iocId", requireAnalyst, async (req, res) => {
+  try {
+    const campaignId = parseInt(req.params.id);
+    const iocId      = parseInt(req.params.iocId);
+    await db.removeIocFromCampaign(iocId, campaignId);
+    await db.logAudit(req.user.sub, "unassign", "ioc", iocId, { campaign_id: campaignId });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ detail: e.message }); }
+});
+
+app.post("/api/campaigns/:id/iocs", requireAnalyst, async (req, res) => {
+  try {
+    const campaignId = parseInt(req.params.id);
+    const { ioc_id } = req.body;
+    if (!ioc_id) return res.status(400).json({ detail: "ioc_id is required" });
+    await db.addIocToCampaign(ioc_id, campaignId);
+    await db.logAudit(req.user.sub, "assign", "ioc", ioc_id, { campaign_id: campaignId });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ detail: e.message });
+  }
+});
+
+app.delete("/api/campaigns/:id", requireAnalyst, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.deleteCampaign(id);
+    await db.logAudit(req.user.sub, "delete", "campaign", id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ detail: e.message });
+  }
+});
+
 // ── Reports ───────────────────────────────────────────────────────────────────
 
 app.get("/api/reports", async (_req, res) => {
@@ -311,6 +381,14 @@ app.get("/api/reports", async (_req, res) => {
   } catch (e) {
     res.status(500).json({ detail: e.message });
   }
+});
+
+app.get("/api/reports/:id", async (req, res) => {
+  try {
+    const report = await db.getReport(parseInt(req.params.id));
+    if (!report) return res.status(404).json({ detail: "Report not found" });
+    res.json(report);
+  } catch (e) { res.status(500).json({ detail: e.message }); }
 });
 
 app.post("/api/reports/:id", requireAnalyst, async (req, res) => {
@@ -328,6 +406,59 @@ app.post("/api/reports/:id", requireAnalyst, async (req, res) => {
   } catch (e) {
     res.status(500).json({ detail: e.message });
   }
+});
+
+app.delete("/api/reports/:id", requireAnalyst, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.deleteReport(id);
+    await db.logAudit(req.user.sub, "delete", "report", id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ detail: e.message });
+  }
+});
+
+// ── ATT&CK TTPs ───────────────────────────────────────────────────────────────
+
+app.get("/api/mitre/techniques", async (_req, res) => {
+  try {
+    res.json(await fetchMitreData());
+  } catch (e) { res.status(500).json({ detail: e.message }); }
+});
+
+app.get("/api/ttps", async (_req, res) => {
+  try {
+    res.json(await db.listAllTtps());
+  } catch (e) { res.status(500).json({ detail: e.message }); }
+});
+
+app.get("/api/campaigns/:id/ttps", async (req, res) => {
+  try {
+    res.json(await db.getCampaignTtps(parseInt(req.params.id)));
+  } catch (e) { res.status(500).json({ detail: e.message }); }
+});
+
+app.post("/api/campaigns/:id/ttps", requireAnalyst, async (req, res) => {
+  try {
+    const campaignId = parseInt(req.params.id);
+    const { technique_id, technique_name, tactic } = req.body;
+    if (!technique_id || !tactic)
+      return res.status(400).json({ detail: "technique_id and tactic required" });
+    await db.addCampaignTtp(campaignId, { technique_id, technique_name, tactic });
+    await db.logAudit(req.user.sub, "add_ttp", "campaign", campaignId, { technique_id });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ detail: e.message }); }
+});
+
+app.delete("/api/campaigns/:id/ttps/:techniqueId", requireAnalyst, async (req, res) => {
+  try {
+    const campaignId  = parseInt(req.params.id);
+    const techniqueId = req.params.techniqueId;
+    await db.removeCampaignTtp(campaignId, techniqueId);
+    await db.logAudit(req.user.sub, "remove_ttp", "campaign", campaignId, { technique_id: techniqueId });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ detail: e.message }); }
 });
 
 // ── Export ────────────────────────────────────────────────────────────────────
@@ -487,7 +618,7 @@ wss.on("connection", async (ws, req) => {
     }
 
     await db.logAudit("system", "collect", null, null, { total });
-    send({ type: "complete", source: "system", total, message: `Collection complete — ${total} indicators stored` });
+    send({ type: "complete", source: "system", total, message: `Collection complete: ${total} indicators stored` });
   } catch (e) {
     if (ws.readyState === WebSocket.OPEN) {
       send({ type: "error", source: "system", message: e.message });
@@ -508,6 +639,7 @@ db.initDb()
     server.listen(PORT, () => {
       console.log(`CTI Tracker server running on http://0.0.0.0:${PORT}`);
       console.log(`WebSocket available at ws://localhost:${PORT}/ws/collect`);
+      fetchMitreData().catch((e) => console.warn("[!] MITRE prefetch failed:", e.message));
     });
   })
   .catch((err) => {

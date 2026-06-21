@@ -16,9 +16,9 @@ import type { Stats } from "@/lib/api";
 const ACCENT = "#60a5fa";
 
 const DATA_SOURCES = [
-  { abbr: "MB",     name: "MalwareBazaar", color: "#00c8ff", desc: "Hash-based IOCs. SHA256, MD5, SHA1" },
-  { abbr: "UH",     name: "URLhaus",        color: "#ff6b35", desc: "Malicious URLs and domains" },
-  { abbr: "ATT&CK", name: "MITRE ATT&CK",  color: "#9f7aea", desc: "500+ adversary techniques" },
+  { abbr: "MB", name: "MalwareBazaar", color: "#00c8ff", desc: "Hash-based IOCs: SHA256, MD5, SHA1 from daily malware samples" },
+  { abbr: "UH", name: "URLhaus",       color: "#ff6b35", desc: "Malicious URLs and domains from community threat reports" },
+  { abbr: "FT", name: "FeodoTracker",  color: "#ef4444", desc: "C2 botnet IPs linked to Emotet, Qakbot, and banking trojans" },
 ];
 
 interface Props {
@@ -58,9 +58,9 @@ export function OverviewTab({ stats, collecting }: Props) {
         />
         <StatsCard
           title="Sources"
-          value={2}
+          value={3}
           icon={<Globe className="w-4 h-4" weight="bold" />}
-          subtitle="MalwareBazaar · URLhaus"
+          subtitle="MB · URLhaus · FeodoTracker"
           index={3}
         />
       </div>
@@ -160,7 +160,7 @@ export function OverviewTab({ stats, collecting }: Props) {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Collection Status", value: collecting ? "ACTIVE" : "STANDBY", color: collecting ? "#22c55e" : ACCENT, pulse: collecting },
-              { label: "Active Feeds",      value: "02 / 02",  color: "#22c55e", pulse: true },
+              { label: "Active Feeds",      value: "03 / 03",  color: "#22c55e", pulse: true },
               { label: "IOC Coverage",      value: stats ? `${stats.total_iocs.toLocaleString()} IND` : "—", color: ACCENT, pulse: false },
               { label: "MITRE Techniques",  value: "500+",     color: "#9f7aea", pulse: false },
               { label: "TLP Levels",        value: "4 LEVELS", color: "#fbbf24", pulse: false },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PlayIcon as Play,
@@ -8,6 +8,7 @@ import {
   CheckCircleIcon as CheckCircle,
   ClockIcon as Clock,
 } from "@phosphor-icons/react";
+import { HelpTip } from "@/components/shared/HelpTip";
 import { FeedMessage, IOC_TYPE_COLORS, SOURCE_COLORS, truncate } from "@/lib/api";
 
 const ACCENT = "#60a5fa";
@@ -28,10 +29,17 @@ const SOURCE_LABELS: Record<string, string> = {
   system:        "System",
 };
 
+const LIMIT_OPTIONS = [
+  { value: 20,  label: "20 / src" },
+  { value: 50,  label: "50 / src" },
+  { value: 100, label: "100 / src" },
+  { value: 200, label: "200 / src" },
+];
+
 interface Props {
   messages: FeedMessage[];
   collecting: boolean;
-  onCollect: () => void;
+  onCollect: (limit: number) => void;
 }
 
 function formatTime(ts: number) {
@@ -45,6 +53,7 @@ function formatTime(ts: number) {
 
 export default function LiveFeed({ messages, collecting, onCollect }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
+  const [limit, setLimit] = useState(20);
   const iocs    = messages.filter((m) => m.type === "ioc");
   const status  = messages.find((m) => m.type === "status" && m.source !== "system");
   const done    = messages.find((m) => m.type === "complete");
@@ -64,7 +73,19 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
           style={{ color: collecting ? ACCENT : "#3f3f46" }}
         />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-zinc-200">Live Collection</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-[13px] font-semibold text-zinc-200">Live Collection</p>
+            <HelpTip
+              title="Live Collection"
+              steps={[
+                "Select how many indicators to pull per source using the dropdown.",
+                'Click "Start Collection" to begin streaming via WebSocket.',
+                "IOCs from MalwareBazaar, URLhaus, and FeodoTracker stream in real time.",
+                "All collected indicators are saved to your database automatically.",
+                'Switch to the "IOCs" tab to view and manage what was collected.',
+              ]}
+            />
+          </div>
           <p className="text-[11px] text-zinc-600 mt-0.5">
             {collecting
               ? status?.message ?? "Fetching threat indicators..."
@@ -96,8 +117,20 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
           </div>
         )}
 
+        <select
+          value={limit}
+          onChange={(e) => setLimit(Number(e.target.value))}
+          disabled={collecting}
+          className="text-[11px] font-mono rounded-lg px-2 py-1.5 shrink-0 cursor-pointer disabled:opacity-40"
+          style={{ background: "#1c1c20", color: "#71717a", border: "1px solid #27272a" }}
+        >
+          {LIMIT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
         <button
-          onClick={onCollect}
+          onClick={() => onCollect(limit)}
           disabled={collecting}
           className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-semibold transition-all cursor-pointer shrink-0"
           style={

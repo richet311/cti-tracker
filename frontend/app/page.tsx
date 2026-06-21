@@ -105,7 +105,7 @@ export default function Landing() {
                   className="flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm transition-all hover:brightness-110 active:scale-[0.98] cursor-pointer"
                   style={{ background: ACCENT, color: "#09090b", boxShadow: `0 0 24px ${ACCENT}35` }}
                 >
-                  {authed ? "Open Dashboard" : "Get Started"} <ArrowRight className="w-4 h-4" weight="bold" />
+                  {authed ? "Open Dashboard" : "Get Started"} 
                 </Link>
                 <a
                   href="#capabilities"

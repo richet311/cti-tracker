@@ -11,13 +11,13 @@ export function useWebSocket(onComplete: () => void) {
   const [feedMessages, setFeedMessages] = useState<FeedMessage[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const startCollection = useCallback(() => {
+  const startCollection = useCallback((limit: number = 20) => {
     if (collecting || wsRef.current) return;
     setCollecting(true);
     setFeedMessages([]);
 
     const token = getToken() ?? "";
-    const ws = new WebSocket(`${WS_COLLECT_URL}?token=${encodeURIComponent(token)}`);
+    const ws = new WebSocket(`${WS_COLLECT_URL}?token=${encodeURIComponent(token)}&limit=${limit}`);
     wsRef.current = ws;
 
     ws.onmessage = (e) => {

@@ -213,6 +213,15 @@ async function getAuditLog(limit = 100, actor = null) {
 
 // ── Campaigns ─────────────────────────────────────────────────────────────────
 
+async function createCampaign(name, threatActor = null, motivation = "unknown", status = "active", description = null) {
+  const { data } = await supabase
+    .from("campaigns")
+    .insert({ name, threat_actor: threatActor, motivation, status, description })
+    .select("id")
+    .single();
+  return data?.id ?? null;
+}
+
 async function listCampaigns() {
   const { data } = await supabase
     .from("campaigns_view")
@@ -224,6 +233,24 @@ async function listCampaigns() {
 async function getCampaign(id) {
   const { data } = await supabase.from("campaigns").select("*").eq("id", id).maybeSingle();
   return data ?? null;
+}
+
+async function deleteIoc(id) {
+  await supabase.from("iocs").delete().eq("id", id);
+}
+
+async function deleteCampaign(id) {
+  await supabase.from("campaigns").delete().eq("id", id);
+}
+
+async function deleteReport(id) {
+  await supabase.from("reports").delete().eq("id", id);
+}
+
+async function addIocToCampaign(iocId, campaignId) {
+  await supabase
+    .from("campaign_iocs")
+    .upsert({ ioc_id: iocId, campaign_id: campaignId }, { onConflict: "ioc_id,campaign_id" });
 }
 
 async function getCampaignIocs(campaignId) {
@@ -244,7 +271,46 @@ async function getCampaignTtps(campaignId) {
   return data ?? [];
 }
 
+async function removeIocFromCampaign(iocId, campaignId) {
+  await supabase
+    .from("campaign_iocs")
+    .delete()
+    .eq("ioc_id", iocId)
+    .eq("campaign_id", campaignId);
+}
+
+async function listAllTtps() {
+  const { data } = await supabase
+    .from("campaign_ttps")
+    .select("*")
+    .order("tactic")
+    .order("technique_id");
+  return data ?? [];
+}
+
+async function addCampaignTtp(campaignId, { technique_id, technique_name, tactic }) {
+  await supabase
+    .from("campaign_ttps")
+    .upsert(
+      { campaign_id: campaignId, technique_id, technique_name, tactic },
+      { onConflict: "campaign_id,technique_id" }
+    );
+}
+
+async function removeCampaignTtp(campaignId, techniqueId) {
+  await supabase
+    .from("campaign_ttps")
+    .delete()
+    .eq("campaign_id", campaignId)
+    .eq("technique_id", techniqueId);
+}
+
 // ── Reports ───────────────────────────────────────────────────────────────────
+
+async function getReport(id) {
+  const { data } = await supabase.from("reports").select("*").eq("id", id).maybeSingle();
+  return data ?? null;
+}
 
 async function listReports() {
   const { data } = await supabase
@@ -278,7 +344,9 @@ module.exports = {
   addToWatchlist, removeFromWatchlist, getWatchlist, isOnWatchlist,
   createUser, getUserByUsername, getUserByEmail, updateLastLogin, updatePassword, listUsers,
   logAudit, getAuditLog,
-  listCampaigns, getCampaign, getCampaignIocs, getCampaignTtps,
-  listReports, saveReport,
+  deleteIoc, deleteCampaign, deleteReport,
+  createCampaign, listCampaigns, getCampaign, addIocToCampaign, getCampaignIocs, getCampaignTtps,
+  removeIocFromCampaign, addCampaignTtp, removeCampaignTtp, listAllTtps,
+  getReport, listReports, saveReport,
   getStats,
 };

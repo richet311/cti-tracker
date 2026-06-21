@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -17,15 +17,16 @@ import RecentIOCsTable from "@/components/RecentIOCsTable";
 import ReportsView from "@/components/ReportsView";
 import { OverviewTab } from "@/components/dashboard/OverviewTab";
 import { HuntTab } from "@/components/dashboard/HuntTab";
+import { MitreMatrix } from "@/components/dashboard/MitreMatrix";
 
 import { useSession } from "next-auth/react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { setToken } from "@/lib/api";
+import { setToken, BASE } from "@/lib/api";
 
 const ACCENT = "#60a5fa";
 
-const VALID_TABS = new Set<Tab>(["overview", "iocs", "campaigns", "reports", "feed", "hunt"]);
+const VALID_TABS = new Set<Tab>(["overview", "iocs", "campaigns", "reports", "feed", "hunt", "matrix"]);
 
 export default function Dashboard() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const [authReady, setAuthReady]     = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const googleAuthedRef               = useRef(false);
 
   const initialTab = searchParams.get("tab") as Tab;
   const [activeTab, setActiveTab] = useState<Tab>(
@@ -44,12 +46,26 @@ export default function Dashboard() {
     loading, refreshing, load, refresh,
   } = useDashboardData();
 
-  // Auth guard
+  // Auth guard — exchange Google OAuth session for a server-signed JWT
   useEffect(() => {
     if (status === "loading") return;
     if (status === "unauthenticated") { router.replace("/login"); return; }
-    if (session?.accessToken) setToken(session.accessToken);
-    setAuthReady(true);
+    if (googleAuthedRef.current) return;
+    googleAuthedRef.current = true;
+
+    if (session?.user?.email) {
+      fetch(`${BASE}/api/auth/google-signin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: session.user.email, name: session.user.name ?? "" }),
+      })
+        .then((r) => r.json())
+        .then((d: { access_token?: string }) => { if (d.access_token) setToken(d.access_token); })
+        .catch(() => {})
+        .finally(() => setAuthReady(true));
+    } else {
+      setAuthReady(true);
+    }
   }, [status, session, router]);
 
   useEffect(() => { if (authReady) load(); }, [authReady, load]);
@@ -58,9 +74,9 @@ export default function Dashboard() {
 
   function handleTabChange(tab: Tab) { setActiveTab(tab); setSidebarOpen(false); }
 
-  function handleStartCollection() {
+  function handleStartCollection(limit: number) {
     setActiveTab("feed");
-    startCollection();
+    startCollection(limit);
   }
 
   const counts: Partial<Record<Tab, number>> = {
@@ -171,19 +187,19 @@ export default function Dashboard() {
 
           {activeTab === "iocs" && (
             <motion.div key="iocs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-              <RecentIOCsTable iocs={iocs} />
+              <RecentIOCsTable iocs={iocs} campaigns={campaigns} onRefresh={load} />
             </motion.div>
           )}
 
           {activeTab === "campaigns" && (
             <motion.div key="campaigns" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-              <CampaignCards campaigns={campaigns} />
+              <CampaignCards campaigns={campaigns} onRefresh={load} />
             </motion.div>
           )}
 
           {activeTab === "reports" && (
             <motion.div key="reports" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-              <ReportsView reports={reports} />
+              <ReportsView reports={reports} onRefresh={load} />
             </motion.div>
           )}
 
@@ -202,6 +218,12 @@ export default function Dashboard() {
           {activeTab === "hunt" && (
             <motion.div key="hunt" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               <HuntTab />
+            </motion.div>
+          )}
+
+          {activeTab === "matrix" && (
+            <motion.div key="matrix" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+              <MitreMatrix />
             </motion.div>
           )}
 

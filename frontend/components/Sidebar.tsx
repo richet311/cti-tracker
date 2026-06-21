@@ -13,6 +13,7 @@ import {
   FileTextIcon as FileText,
   WifiHighIcon as WifiHigh,
   MagnifyingGlassIcon as MagnifyingGlass,
+  GridFourIcon as GridFour,
   BookmarkSimpleIcon as BookmarkSimple,
   GearSixIcon as GearSix,
   ArrowLeftIcon as ArrowLeft,
@@ -26,7 +27,8 @@ export type Tab =
   | "campaigns"
   | "reports"
   | "feed"
-  | "hunt";
+  | "hunt"
+  | "matrix";
 
 const ACCENT = "#60a5fa";
 
@@ -57,9 +59,10 @@ const PLATFORM_SECTIONS: NavSection[] = [
   {
     label: "Analyze",
     items: [
-      { id: "iocs",      label: "IOCs",      Icon: Hash },
-      { id: "hunt",      label: "IOC Hunt",  Icon: MagnifyingGlass },
-      { id: "campaigns", label: "Campaigns", Icon: UsersThree },
+      { id: "iocs",      label: "IOCs",         Icon: Hash },
+      { id: "hunt",      label: "IOC Hunt",     Icon: MagnifyingGlass },
+      { id: "campaigns", label: "Campaigns",    Icon: UsersThree },
+      { id: "matrix",    label: "ATT&CK",  Icon: GridFour },
     ],
   },
   {
