@@ -76,26 +76,26 @@ export default function RecentIOCsTable({ iocs, campaigns, onRefresh }: Props) {
     return true;
   });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const slice      = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
-  const pageIds    = slice.map((ioc) => ioc.id);
-  const allPageSelected  = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
-  const somePageSelected = pageIds.some((id) => selectedIds.has(id));
+  const totalPages       = Math.ceil(filtered.length / PAGE_SIZE);
+  const slice            = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  const filteredIds      = filtered.map((ioc) => ioc.id);
+  const allFilterSelected  = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const someFilterSelected = filteredIds.some((id) => selectedIds.has(id));
 
   // Drive the indeterminate state on the select-all checkbox
   useEffect(() => {
     if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = somePageSelected && !allPageSelected;
+      selectAllRef.current.indeterminate = someFilterSelected && !allFilterSelected;
     }
-  }, [somePageSelected, allPageSelected]);
+  }, [someFilterSelected, allFilterSelected]);
 
   function toggleSelectAll() {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (allPageSelected) {
-        pageIds.forEach((id) => next.delete(id));
+      if (allFilterSelected) {
+        filteredIds.forEach((id) => next.delete(id));
       } else {
-        pageIds.forEach((id) => next.add(id));
+        filteredIds.forEach((id) => next.add(id));
       }
       return next;
     });
@@ -336,7 +336,7 @@ export default function RecentIOCsTable({ iocs, campaigns, onRefresh }: Props) {
                 <input
                   ref={selectAllRef}
                   type="checkbox"
-                  checked={allPageSelected}
+                  checked={allFilterSelected}
                   onChange={toggleSelectAll}
                   className="w-3.5 h-3.5 rounded cursor-pointer accent-[#00c8ff]"
                 />
