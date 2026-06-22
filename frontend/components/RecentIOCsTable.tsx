@@ -526,7 +526,7 @@ function IOCTableRow({
           target="_blank"
           rel="noopener noreferrer"
           title="Pivot to VirusTotal"
-          className="flex items-center justify-center p-1 rounded text-zinc-700 hover:text-[#00c8ff] transition-colors"
+          className="flex items-center justify-center p-1 rounded text-zinc-500 hover:text-[#00c8ff] transition-colors"
         >
           <ArrowSquareOut className="w-3.5 h-3.5" />
         </a>

@@ -123,7 +123,7 @@ export function ReportDrawer({ report, onClose }: Props) {
                 <MarkdownView content={content} />
               ) : (
                 <div className="flex flex-col items-center py-16 gap-3">
-                  <FileText className="w-10 h-10 text-zinc-800" />
+                  <FileText className="w-10 h-10 text-zinc-600" />
                   <p className="text-zinc-600 text-sm">No content available for this report</p>
                 </div>
               )}

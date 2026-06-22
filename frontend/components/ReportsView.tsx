@@ -29,7 +29,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
       {visible && (
         <div
           className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md pointer-events-none z-50"
-          style={{ background: "#1c1c20", color: "#a1a1aa", border: "1px solid #27272a" }}
+          style={{ background: "#2a2a30", color: "#d4d4d8", border: "1px solid #3f3f46", boxShadow: "0 4px 12px rgba(0,0,0,0.5)" }}
         >
           {label}
         </div>

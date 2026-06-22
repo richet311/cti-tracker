@@ -402,9 +402,9 @@ function Spinner({ label }: { label: string }) {
 function EmptyState({ Icon, title, hint }: { Icon: React.ComponentType<{ className?: string; weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone" }>; title: string; hint: string }) {
   return (
     <div className="flex flex-col items-center py-14 gap-2 text-center px-6">
-      <Icon className="w-8 h-8 text-zinc-800" />
+      <Icon className="w-8 h-8 text-zinc-600" />
       <p className="text-zinc-500 text-sm font-medium">{title}</p>
-      <p className="text-zinc-700 text-xs leading-relaxed">
+      <p className="text-zinc-600 text-xs leading-relaxed">
         {hint.split(/"([^"]+)"/).map((part, i) =>
           i % 2 === 1
             ? <span key={i} className="text-zinc-500">{part}</span>
@@ -551,7 +551,7 @@ function TtpPanel({
                     className="flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded transition-all cursor-pointer disabled:opacity-50"
                     style={effective
                       ? { color, background: `${color}20`, border: `1px solid ${color}45`, opacity: isPendingRemove ? 0.45 : 1 }
-                      : { color: "#52525b", background: "#18181b", border: "1px solid #27272a" }
+                      : { color: "#71717a", background: "#18181b", border: "1px solid #3f3f46" }
                     }
                   >
                     {isPendingAdd
