@@ -540,6 +540,8 @@ wss.on("connection", async (ws, req) => {
   }
 
   let total = 0;
+  let newCount = 0;
+  let dupCount = 0;
 
   try {
     send({ type: "status", source: "system", message: "Connecting to MalwareBazaar..." });
@@ -550,7 +552,7 @@ wss.on("connection", async (ws, req) => {
       if (ws.readyState !== WebSocket.OPEN) return;
       const conf = scoreConfidence("malwarebazaar", s.signature, s.tags || []);
       const sev  = classifySeverity("hash_sha256", "malwarebazaar", s.signature, s.file_type, conf);
-      await db.upsertIoc(s.sha256_hash, "hash_sha256", {
+      const { isNew } = await db.upsertIoc(s.sha256_hash, "hash_sha256", {
         malware_family: s.signature,
         threat_type:    s.file_type,
         first_seen:     s.first_seen,
@@ -561,9 +563,10 @@ wss.on("connection", async (ws, req) => {
         severity:       sev,
         raw_data:       s,
       });
+      if (isNew) newCount++; else dupCount++;
       send({ type: "ioc", source: "malwarebazaar", value: s.sha256_hash, ioc_type: "hash_sha256",
              malware_family: s.signature, threat_type: s.file_type, confidence: conf, severity: sev,
-             first_seen: s.first_seen });
+             first_seen: s.first_seen, is_new: isNew });
       total++;
       await sleep(70);
     }
@@ -576,7 +579,7 @@ wss.on("connection", async (ws, req) => {
       if (ws.readyState !== WebSocket.OPEN) return;
       const conf = scoreConfidence("urlhaus", null, u.tags || []);
       const sev  = classifySeverity("url", "urlhaus", null, u.threat, conf);
-      await db.upsertIoc(u.url, "url", {
+      const { isNew } = await db.upsertIoc(u.url, "url", {
         threat_type: u.threat,
         tags:        u.tags || [],
         first_seen:  u.date_added,
@@ -585,8 +588,9 @@ wss.on("connection", async (ws, req) => {
         severity:    sev,
         raw_data:    u,
       });
+      if (isNew) newCount++; else dupCount++;
       send({ type: "ioc", source: "urlhaus", value: u.url, ioc_type: "url",
-             threat_type: u.threat, confidence: conf, severity: sev, first_seen: u.date_added });
+             threat_type: u.threat, confidence: conf, severity: sev, first_seen: u.date_added, is_new: isNew });
       total++;
       await sleep(70);
     }
@@ -599,7 +603,7 @@ wss.on("connection", async (ws, req) => {
       if (ws.readyState !== WebSocket.OPEN) return;
       const conf = scoreConfidence("feodotracker", c.malware_family, []);
       const sev  = classifySeverity("ip", "feodotracker", c.malware_family, null, conf);
-      await db.upsertIoc(c.ip, "ip", {
+      const { isNew } = await db.upsertIoc(c.ip, "ip", {
         malware_family: c.malware_family,
         threat_type:    "c2",
         first_seen:     c.first_seen,
@@ -610,15 +614,17 @@ wss.on("connection", async (ws, req) => {
         severity:       sev,
         raw_data:       c,
       });
+      if (isNew) newCount++; else dupCount++;
       send({ type: "ioc", source: "feodotracker", value: c.ip, ioc_type: "ip",
              malware_family: c.malware_family, threat_type: "c2", confidence: conf, severity: sev,
-             first_seen: c.first_seen });
+             first_seen: c.first_seen, is_new: isNew });
       total++;
       await sleep(50);
     }
 
-    await db.logAudit("system", "collect", null, null, { total });
-    send({ type: "complete", source: "system", total, message: `Collection complete: ${total} indicators stored` });
+    await db.logAudit("system", "collect", null, null, { total, newCount, dupCount });
+    send({ type: "complete", source: "system", total, new_count: newCount, dup_count: dupCount,
+           message: `Collection complete — ${newCount} new, ${dupCount} updated` });
   } catch (e) {
     if (ws.readyState === WebSocket.OPEN) {
       send({ type: "error", source: "system", message: e.message });

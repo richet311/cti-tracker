@@ -1,7 +1,8 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 
-const SECRET_KEY = process.env.CTI_SECRET_KEY || "cti-tracker-dev-secret-change-in-production";
+const SECRET_KEY = process.env.CTI_SECRET_KEY;
+if (!SECRET_KEY) throw new Error("CTI_SECRET_KEY environment variable is not set");
 const TOKEN_TTL_SECONDS = 60 * 60 * 8; // 8 hours
 
 const ITERATIONS = 260_000;

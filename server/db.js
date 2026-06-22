@@ -41,7 +41,7 @@ async function upsertIoc(value, iocType, opts = {}) {
       .from("iocs")
       .update({ ...updates, last_seen: new Date().toISOString(), source_count: (existing.source_count || 1) + 1 })
       .eq("value", value);
-    return existing.id;
+    return { id: existing.id, isNew: false };
   }
 
   const { data } = await supabase
@@ -49,7 +49,7 @@ async function upsertIoc(value, iocType, opts = {}) {
     .insert({ value, ioc_type: iocType, ...o })
     .select("id")
     .single();
-  return data?.id ?? null;
+  return { id: data?.id ?? null, isNew: data != null };
 }
 
 async function getIocById(id) {
