@@ -8,7 +8,6 @@ import {
   CircleNotchIcon as CircleNotch,
   ShieldIcon as Shield,
   ClockIcon as Clock,
-  TagIcon as Tag,
 } from "@phosphor-icons/react";
 import { Report, BASE } from "@/lib/api";
 import { authHeaders } from "@/lib/api/auth";
@@ -136,73 +135,175 @@ export function ReportDrawer({ report, onClose }: Props) {
   );
 }
 
-function inlineBold(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+// ── Inline renderer ───────────────────────────────────────────────────────────
+
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
   return (
     <>
-      {parts.map((p, i) =>
-        p.startsWith("**") && p.endsWith("**")
-          ? <strong key={i} className="text-zinc-200 font-semibold">{p.slice(2, -2)}</strong>
-          : p
-      )}
+      {parts.map((p, i) => {
+        if (p.startsWith("**") && p.endsWith("**"))
+          return <strong key={i} className="text-zinc-200 font-semibold">{p.slice(2, -2)}</strong>;
+        if (p.startsWith("`") && p.endsWith("`"))
+          return <code key={i} className="text-[11px] font-mono bg-zinc-900 text-[#00c8ff] px-1.5 py-0.5 rounded">{p.slice(1, -1)}</code>;
+        if (p.startsWith("*") && p.endsWith("*"))
+          return <em key={i} className="text-zinc-500 italic">{p.slice(1, -1)}</em>;
+        return p;
+      })}
     </>
   );
 }
 
-function inlineCode(text: string): React.ReactNode {
-  const parts = text.split(/(`[^`]+`)/g);
-  return (
-    <>
-      {parts.map((p, i) =>
-        p.startsWith("`") && p.endsWith("`")
-          ? <code key={i} className="text-[12px] font-mono bg-zinc-900 text-[#00c8ff] px-1.5 py-0.5 rounded">{p.slice(1, -1)}</code>
-          : inlineBold(p)
-      )}
-    </>
-  );
+// ── Markdown parser ───────────────────────────────────────────────────────────
+
+type Seg =
+  | { kind: "h1" | "h2" | "h3" | "hr" | "blank" | "bullet" | "para"; text: string }
+  | { kind: "table"; header: string[]; rows: string[][] }
+  | { kind: "code"; lines: string[] };
+
+function parseContent(content: string): Seg[] {
+  const rawLines = content.split("\n");
+  const segs: Seg[] = [];
+  let i = 0;
+
+  const isSepRow = (l: string) => /^\|[\s\-|:]+\|$/.test(l.trim());
+
+  while (i < rawLines.length) {
+    const line = rawLines[i];
+
+    if (line.trim().startsWith("```")) {
+      const codeLines: string[] = [];
+      i++;
+      while (i < rawLines.length && !rawLines[i].trim().startsWith("```")) {
+        codeLines.push(rawLines[i]);
+        i++;
+      }
+      i++;
+      segs.push({ kind: "code", lines: codeLines });
+      continue;
+    }
+
+    if (line.startsWith("|")) {
+      const tableLines: string[] = [];
+      while (i < rawLines.length && rawLines[i].startsWith("|")) {
+        tableLines.push(rawLines[i]);
+        i++;
+      }
+      const dataLines = tableLines.filter((l) => !isSepRow(l));
+      if (dataLines.length >= 2) {
+        const header = dataLines[0].split("|").slice(1, -1).map((c) => c.trim());
+        const rows   = dataLines.slice(1).map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
+        segs.push({ kind: "table", header, rows });
+      } else if (dataLines.length === 1) {
+        segs.push({ kind: "para", text: dataLines[0] });
+      }
+      continue;
+    }
+
+    if (line.startsWith("# "))   { segs.push({ kind: "h1",    text: line.slice(2) });  i++; continue; }
+    if (line.startsWith("## "))  { segs.push({ kind: "h2",    text: line.slice(3) });  i++; continue; }
+    if (line.startsWith("### ")) { segs.push({ kind: "h3",    text: line.slice(4) });  i++; continue; }
+    if (/^-{3,}$/.test(line.trim())) { segs.push({ kind: "hr",    text: "" });         i++; continue; }
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      segs.push({ kind: "bullet", text: line.slice(2) }); i++; continue;
+    }
+    if (line.trim() === "") { segs.push({ kind: "blank", text: "" }); i++; continue; }
+
+    segs.push({ kind: "para", text: line });
+    i++;
+  }
+
+  return segs;
 }
+
+// ── MarkdownView ──────────────────────────────────────────────────────────────
 
 function MarkdownView({ content }: { content: string }) {
-  const lines = content.split("\n");
+  const segs = parseContent(content);
 
   return (
     <div>
-      {lines.map((line, i) => {
-        if (line.startsWith("# "))
-          return (
-            <h1 key={i} className="text-[17px] font-bold text-zinc-100 mt-0 mb-4 pb-3 first:mt-0"
-              style={{ borderBottom: "1px solid #1e1e24" }}>
-              {inlineCode(line.slice(2))}
-            </h1>
-          );
-        if (line.startsWith("## "))
-          return (
-            <h2 key={i} className="text-[13px] font-bold text-zinc-300 mt-6 mb-3 uppercase tracking-wider">
-              {inlineCode(line.slice(3))}
-            </h2>
-          );
-        if (line.startsWith("### "))
-          return (
-            <h3 key={i} className="text-[13px] font-semibold text-zinc-400 mt-4 mb-2">
-              {inlineCode(line.slice(4))}
-            </h3>
-          );
-        if (line.startsWith("- ") || line.startsWith("* "))
-          return (
-            <div key={i} className="flex gap-2.5 text-[13px] text-zinc-400 leading-relaxed mb-1">
-              <span className="text-zinc-700 shrink-0 mt-0.5 select-none">·</span>
-              <span>{inlineCode(line.slice(2))}</span>
-            </div>
-          );
-        if (/^-{3,}$/.test(line.trim()))
-          return <hr key={i} className="border-zinc-800 my-5" />;
-        if (line.trim() === "")
-          return <div key={i} className="h-3" />;
-        return (
-          <p key={i} className="text-[13px] text-zinc-400 leading-relaxed mb-1">
-            {inlineCode(line)}
-          </p>
-        );
+      {segs.map((seg, i) => {
+        switch (seg.kind) {
+          case "h1":
+            return (
+              <h1 key={i} className="text-[17px] font-bold text-zinc-100 mt-0 mb-4 pb-3 first:mt-0"
+                style={{ borderBottom: "1px solid #1e1e24" }}>
+                {renderInline(seg.text)}
+              </h1>
+            );
+          case "h2":
+            return (
+              <h2 key={i} className="text-[13px] font-bold text-zinc-300 mt-6 mb-3 uppercase tracking-wider">
+                {renderInline(seg.text)}
+              </h2>
+            );
+          case "h3":
+            return (
+              <h3 key={i} className="text-[13px] font-semibold text-zinc-400 mt-4 mb-2">
+                {renderInline(seg.text)}
+              </h3>
+            );
+          case "hr":
+            return <hr key={i} className="border-zinc-800 my-5" />;
+          case "blank":
+            return <div key={i} className="h-3" />;
+          case "bullet":
+            return (
+              <div key={i} className="flex gap-2.5 text-[13px] text-zinc-400 leading-relaxed mb-1">
+                <span className="text-zinc-700 shrink-0 mt-0.5 select-none">·</span>
+                <span>{renderInline(seg.text)}</span>
+              </div>
+            );
+          case "para":
+            return (
+              <p key={i} className="text-[13px] text-zinc-400 leading-relaxed mb-1">
+                {renderInline(seg.text)}
+              </p>
+            );
+          case "code":
+            return (
+              <div key={i} className="my-3 rounded-lg overflow-hidden">
+                <pre
+                  className="p-4 overflow-x-auto text-[11px] leading-relaxed font-mono text-zinc-300 whitespace-pre"
+                  style={{ background: "#0e0e11", border: "1px solid #1e1e24" }}
+                >
+                  {seg.lines.join("\n")}
+                </pre>
+              </div>
+            );
+          case "table":
+            return (
+              <div key={i} className="overflow-x-auto my-4 rounded-lg" style={{ border: "1px solid #1e1e24" }}>
+                <table className="w-full text-[12px] border-collapse">
+                  <thead>
+                    <tr style={{ background: "#111116", borderBottom: "1px solid #27272a" }}>
+                      {seg.header.map((h, hi) => (
+                        <th key={hi} className="text-left px-4 py-2.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                          {renderInline(h)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {seg.rows.map((row, ri) => (
+                      <tr
+                        key={ri}
+                        className="hover:bg-white/[0.02] transition-colors"
+                        style={{ borderBottom: ri < seg.rows.length - 1 ? "1px solid #1a1a1e" : "none" }}
+                      >
+                        {row.map((cell, ci) => (
+                          <td key={ci} className="px-4 py-2.5 text-zinc-400 text-[12px]">
+                            {renderInline(cell)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+        }
       })}
     </div>
   );

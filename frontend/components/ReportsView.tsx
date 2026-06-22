@@ -17,6 +17,27 @@ import { useToast } from "@/hooks/useToast";
 import { ReportDrawer } from "@/components/ReportDrawer";
 import { HelpTip } from "@/components/shared/HelpTip";
 
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  const [visible, setHover] = useState(false);
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      {children}
+      {visible && (
+        <div
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md pointer-events-none z-50"
+          style={{ background: "#1c1c20", color: "#a1a1aa", border: "1px solid #27272a" }}
+        >
+          {label}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   reports: Report[];
   onRefresh: () => void;
@@ -172,24 +193,26 @@ function ReportItem({
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={() => onView(r)}
-            className="p-1.5 rounded text-zinc-600 hover:text-[#00c8ff] transition-colors cursor-pointer"
-            title="View report"
-          >
-            <ArrowSquareOut className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="p-1.5 rounded text-zinc-600 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-40"
-            title="Delete report"
-          >
-            {deleting
-              ? <CircleNotch className="w-3.5 h-3.5 animate-spin" />
-              : <Trash className="w-3.5 h-3.5" />
-            }
-          </button>
+          <Tip label="Open report">
+            <button
+              onClick={() => onView(r)}
+              className="p-1.5 rounded-lg text-zinc-600 hover:text-[#00c8ff] hover:bg-[#00c8ff10] transition-colors cursor-pointer"
+            >
+              <ArrowSquareOut className="w-3.5 h-3.5" />
+            </button>
+          </Tip>
+          <Tip label="Delete report">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="p-1.5 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer disabled:opacity-40"
+            >
+              {deleting
+                ? <CircleNotch className="w-3.5 h-3.5 animate-spin" />
+                : <Trash className="w-3.5 h-3.5" />
+              }
+            </button>
+          </Tip>
         </div>
       </div>
     </motion.div>

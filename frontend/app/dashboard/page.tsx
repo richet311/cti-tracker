@@ -217,7 +217,7 @@ function DashboardContent() {
 
           {activeTab === "campaigns" && (
             <motion.div key="campaigns" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-              <CampaignCards campaigns={campaigns} onRefresh={load} />
+              <CampaignCards campaigns={campaigns} reports={reports} onRefresh={load} />
             </motion.div>
           )}
 

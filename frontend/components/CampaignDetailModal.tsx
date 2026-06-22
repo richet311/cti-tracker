@@ -12,6 +12,8 @@ import {
   LinkBreakIcon as LinkBreak,
   MagnifyingGlassIcon as MagnifyingGlass,
   CheckIcon as Check,
+  PlusIcon as Plus,
+  FloppyDiskIcon as FloppyDisk,
 } from "@phosphor-icons/react";
 import { Campaign, IOC, TTP, IOC_TYPE_COLORS, BASE } from "@/lib/api";
 import { authHeaders } from "@/lib/api/auth";
@@ -81,6 +83,8 @@ interface Props {
 
 type ActiveTab = "iocs" | "ttps";
 
+type PendingAdd = { tech: MitreTechnique; tactic: string };
+
 export function CampaignDetailModal({ campaign, onClose, onRefresh }: Props) {
   const [tab, setTab]               = useState<ActiveTab>("iocs");
   const [iocs, setIocs]             = useState<IOC[]>([]);
@@ -88,8 +92,13 @@ export function CampaignDetailModal({ campaign, onClose, onRefresh }: Props) {
   const [mitre, setMitre]           = useState<import("@/lib/api/mitre").MitreData | null>(null);
   const [loading, setLoading]       = useState(false);
   const [mitreLoading, setMitreLoading] = useState(false);
+  const [pendingAdds, setPendingAdds]       = useState<Map<string, PendingAdd>>(new Map());
+  const [pendingRemoves, setPendingRemoves] = useState<Set<string>>(new Set());
+  const [saving, setSaving]                 = useState(false);
   const toast   = useToast();
   const confirm = useConfirm();
+
+  const pendingCount = pendingAdds.size + pendingRemoves.size;
 
   const loadIocs = useCallback(async (id: number) => {
     setLoading(true);
@@ -118,6 +127,11 @@ export function CampaignDetailModal({ campaign, onClose, onRefresh }: Props) {
       setMitreLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setPendingAdds(new Map());
+    setPendingRemoves(new Set());
+  }, [campaign?.id]);
 
   useEffect(() => {
     if (!campaign) { setIocs([]); setTtps([]); return; }
@@ -152,28 +166,58 @@ export function CampaignDetailModal({ campaign, onClose, onRefresh }: Props) {
     } catch { toast("Failed to remove IOC", "error"); }
   }
 
-  async function handleToggleTtp(tech: MitreTechnique, tactic: string) {
-    if (!campaign) return;
-    const existing = ttps.find((t) => t.technique_id === tech.id);
-    if (existing) {
-      try {
-        await removeTtpFromCampaign(campaign.id, tech.id);
-        setTtps((prev) => prev.filter((t) => t.technique_id !== tech.id));
-        onRefresh();
-      } catch { toast("Failed to remove technique", "error"); }
+  function stageTtpToggle(tech: MitreTechnique, tactic: string) {
+    const id          = tech.id;
+    const isCommitted = ttps.some((t) => t.technique_id === id);
+
+    if (pendingAdds.has(id)) {
+      setPendingAdds((prev) => { const n = new Map(prev); n.delete(id); return n; });
+    } else if (pendingRemoves.has(id)) {
+      setPendingRemoves((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    } else if (isCommitted) {
+      setPendingRemoves((prev) => { const n = new Set(prev); n.add(id); return n; });
     } else {
-      try {
+      setPendingAdds((prev) => { const n = new Map(prev); n.set(id, { tech, tactic }); return n; });
+    }
+  }
+
+  async function handleSaveTtps() {
+    if (!campaign || pendingCount === 0) return;
+    const addCount = pendingAdds.size;
+    const remCount = pendingRemoves.size;
+    const parts: string[] = [];
+    if (addCount > 0) parts.push(`add ${addCount} technique${addCount !== 1 ? "s" : ""}`);
+    if (remCount > 0) parts.push(`remove ${remCount} technique${remCount !== 1 ? "s" : ""}`);
+
+    const ok = await confirm({
+      title: `Save ${pendingCount} TTP change${pendingCount !== 1 ? "s" : ""}?`,
+      description: `This will ${parts.join(" and ")} for "${campaign.name}".`,
+      confirmLabel: "Save",
+      destructive: false,
+    });
+    if (!ok) return;
+
+    setSaving(true);
+    try {
+      for (const [, { tech, tactic }] of Array.from(pendingAdds)) {
         await addTtpToCampaign(campaign.id, {
           technique_id:   tech.id,
           technique_name: tech.name,
           tactic,
         });
-        setTtps((prev) => [
-          ...prev,
-          { campaign_id: campaign.id, technique_id: tech.id, technique_name: tech.name, tactic },
-        ]);
-        onRefresh();
-      } catch { toast("Failed to add technique", "error"); }
+      }
+      for (const techId of Array.from(pendingRemoves)) {
+        await removeTtpFromCampaign(campaign.id, techId);
+      }
+      await loadTtps(campaign.id);
+      setPendingAdds(new Map());
+      setPendingRemoves(new Set());
+      onRefresh();
+      toast(`${pendingCount} TTP change${pendingCount !== 1 ? "s" : ""} saved`);
+    } catch {
+      toast("Failed to save TTP changes", "error");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -293,7 +337,10 @@ export function CampaignDetailModal({ campaign, onClose, onRefresh }: Props) {
                   ttps={ttps}
                   mitre={mitre}
                   loading={loading || mitreLoading}
-                  onToggle={handleToggleTtp}
+                  pendingAdds={pendingAdds}
+                  pendingRemoves={pendingRemoves}
+                  onToggle={stageTtpToggle}
+                  disabled={saving}
                 />
               )}
             </div>
@@ -309,10 +356,29 @@ export function CampaignDetailModal({ campaign, onClose, onRefresh }: Props) {
               </div>
             )}
             {tab === "ttps" && (
-              <div className="px-6 py-3 shrink-0" style={{ borderTop: "1px solid #27272a" }}>
+              <div className="px-6 py-3 shrink-0 flex items-center justify-between gap-3" style={{ borderTop: "1px solid #27272a" }}>
                 <p className="text-zinc-700 text-xs">
-                  {ttps.length} technique{ttps.length !== 1 ? "s" : ""} mapped. Click any chip to toggle.
+                  {ttps.length + pendingAdds.size - pendingRemoves.size} technique{ttps.length + pendingAdds.size - pendingRemoves.size !== 1 ? "s" : ""} mapped.
+                  {pendingCount > 0 && (
+                    <span className="ml-2" style={{ color: "#fbbf24" }}>
+                      {pendingCount} unsaved change{pendingCount !== 1 ? "s" : ""}
+                    </span>
+                  )}
                 </p>
+                {pendingCount > 0 && (
+                  <button
+                    onClick={handleSaveTtps}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                    style={{ background: "#00c8ff", color: "#09090b" }}
+                  >
+                    {saving
+                      ? <CircleNotch className="w-3 h-3 animate-spin" />
+                      : <FloppyDisk className="w-3 h-3" />
+                    }
+                    {saving ? "Saving…" : `Save ${pendingCount} Change${pendingCount !== 1 ? "s" : ""}`}
+                  </button>
+                )}
               </div>
             )}
           </motion.div>
@@ -405,23 +471,27 @@ function TtpPanel({
   ttps,
   mitre,
   loading,
+  pendingAdds,
+  pendingRemoves,
   onToggle,
+  disabled,
 }: {
   ttps: TTP[];
   mitre: import("@/lib/api/mitre").MitreData | null;
   loading: boolean;
-  onToggle: (tech: MitreTechnique, tactic: string) => Promise<void>;
+  pendingAdds: Map<string, PendingAdd>;
+  pendingRemoves: Set<string>;
+  onToggle: (tech: MitreTechnique, tactic: string) => void;
+  disabled?: boolean;
 }) {
-  const [q, setQ]             = useState("");
-  const [pending, setPending] = useState<string | null>(null);
+  const [q, setQ] = useState("");
 
   if (loading) return <Spinner label="Loading techniques…" />;
   if (!mitre)  return <Spinner label="Loading ATT&CK data…" />;
 
-  const addedIds = new Set(ttps.map((t) => t.technique_id));
-  const lower    = q.toLowerCase();
+  const committedIds = new Set(ttps.map((t) => t.technique_id));
+  const lower        = q.toLowerCase();
 
-  // Build tactic groups in canonical order
   const techniquesByTactic: Record<string, MitreTechnique[]> = {};
   for (const tech of mitre.techniques) {
     for (const tactic of tech.tactics) {
@@ -442,13 +512,6 @@ function TtpPanel({
     }
     if (!techs.length) continue;
     groups.push({ shortname, label: tactic.label, color: TACTIC_COLORS[shortname] ?? "#94a3b8", techs });
-  }
-
-  async function toggle(tech: MitreTechnique, tactic: string) {
-    if (pending) return;
-    setPending(tech.id);
-    try { await onToggle(tech, tactic); }
-    finally { setPending(null); }
   }
 
   return (
@@ -476,23 +539,24 @@ function TtpPanel({
             </p>
             <div className="flex flex-wrap gap-1.5">
               {techs.map((tech) => {
-                const added   = addedIds.has(tech.id);
-                const busy    = pending === tech.id;
+                const isPendingAdd    = pendingAdds.has(tech.id);
+                const isPendingRemove = pendingRemoves.has(tech.id);
+                const effective       = (committedIds.has(tech.id) && !isPendingRemove) || isPendingAdd;
                 return (
                   <button
                     key={`${shortname}-${tech.id}`}
-                    onClick={() => toggle(tech, shortname)}
-                    disabled={!!pending}
+                    onClick={() => onToggle(tech, shortname)}
+                    disabled={!!disabled}
                     title={`${tech.id}: ${tech.name}`}
                     className="flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded transition-all cursor-pointer disabled:opacity-50"
-                    style={added
-                      ? { color, background: `${color}20`, border: `1px solid ${color}45` }
+                    style={effective
+                      ? { color, background: `${color}20`, border: `1px solid ${color}45`, opacity: isPendingRemove ? 0.45 : 1 }
                       : { color: "#52525b", background: "#18181b", border: "1px solid #27272a" }
                     }
                   >
-                    {busy
-                      ? <CircleNotch className="w-2.5 h-2.5 animate-spin" />
-                      : added
+                    {isPendingAdd
+                      ? <Plus className="w-2.5 h-2.5" weight="bold" />
+                      : effective
                       ? <Check className="w-2.5 h-2.5" weight="bold" />
                       : null
                     }

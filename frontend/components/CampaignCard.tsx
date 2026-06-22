@@ -15,7 +15,7 @@ import {
   WarningCircleIcon as WarningCircle,
   TrashIcon as Trash,
 } from "@phosphor-icons/react";
-import { Campaign, createCampaign, generateCampaignReport, deleteCampaign } from "@/lib/api";
+import { Campaign, Report, createCampaign, generateCampaignReport, deleteCampaign } from "@/lib/api";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/hooks/useToast";
 import { CampaignDetailModal } from "@/components/CampaignDetailModal";
@@ -23,6 +23,7 @@ import { HelpTip } from "@/components/shared/HelpTip";
 
 interface Props {
   campaigns: Campaign[];
+  reports: Report[];
   onRefresh: () => void;
 }
 
@@ -46,7 +47,29 @@ const INPUT_CLASS =
   "w-full rounded-lg px-3 py-2 text-[13px] text-zinc-200 placeholder-zinc-600 focus:outline-none transition-colors"
   + " bg-zinc-900 border border-zinc-700 focus:border-zinc-500";
 
-export default function CampaignCards({ campaigns, onRefresh }: Props) {
+// Small hover tooltip component
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {children}
+      {visible && (
+        <div
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap text-[10px] font-medium px-2 py-1 rounded-md pointer-events-none z-50"
+          style={{ background: "#1c1c20", color: "#a1a1aa", border: "1px solid #27272a" }}
+        >
+          {label}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function CampaignCards({ campaigns, reports, onRefresh }: Props) {
   const [showModal, setShowModal]       = useState(false);
   const [creating, setCreating]         = useState(false);
   const [formError, setFormError]       = useState<string | null>(null);
@@ -132,7 +155,14 @@ export default function CampaignCards({ campaigns, onRefresh }: Props) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {campaigns.map((c, i) => (
-            <CampaignItem key={c.id} campaign={c} index={i} onRefresh={onRefresh} onViewDetail={setDetailCampaign} />
+            <CampaignItem
+              key={c.id}
+              campaign={c}
+              index={i}
+              existingReportCount={reports.filter((r) => r.campaign_id === c.id).length}
+              onRefresh={onRefresh}
+              onViewDetail={setDetailCampaign}
+            />
           ))}
         </div>
       )}
@@ -279,11 +309,13 @@ function ModalField({ label, children, required }: { label: string; children: Re
 function CampaignItem({
   campaign: c,
   index,
+  existingReportCount,
   onRefresh,
   onViewDetail,
 }: {
   campaign: Campaign;
   index: number;
+  existingReportCount: number;
   onRefresh: () => void;
   onViewDetail: (c: Campaign) => void;
 }) {
@@ -313,6 +345,16 @@ function CampaignItem({
   }
 
   async function handleGenReport() {
+    if (existingReportCount > 0) {
+      const ok = await confirm({
+        title: "Generate another report?",
+        description: `This campaign already has ${existingReportCount} report${existingReportCount !== 1 ? "s" : ""}. A new snapshot will be created with the current data.`,
+        confirmLabel: "Generate",
+        destructive: false,
+      });
+      if (!ok) return;
+    }
+
     setReporting(true);
     setReportMsg(null);
     try {
@@ -345,17 +387,18 @@ function CampaignItem({
           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusClass}`}>
             {c.status.toUpperCase()}
           </span>
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            className="p-1 rounded text-zinc-600 hover:text-red-400 transition-colors cursor-pointer disabled:opacity-40"
-            title="Delete campaign"
-          >
-            {deleting
-              ? <CircleNotch className="w-3.5 h-3.5 animate-spin" />
-              : <Trash className="w-3.5 h-3.5" />
-            }
-          </button>
+          <Tip label="Delete campaign">
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer disabled:opacity-40"
+            >
+              {deleting
+                ? <CircleNotch className="w-3.5 h-3.5 animate-spin" />
+                : <Trash className="w-3.5 h-3.5" />
+              }
+            </button>
+          </Tip>
         </div>
       </div>
 
@@ -400,18 +443,23 @@ function CampaignItem({
           <button
             onClick={handleGenReport}
             disabled={reporting}
-            className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer disabled:opacity-40"
+            className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] px-2 py-1 rounded-md -ml-2 transition-all cursor-pointer disabled:opacity-40"
           >
             {reporting
               ? <CircleNotch className="w-3.5 h-3.5 animate-spin" />
               : <FileText className="w-3.5 h-3.5" />
             }
             {reporting ? "Generating..." : "Generate Report"}
+            {existingReportCount > 0 && !reporting && (
+              <span className="text-[9px] font-mono px-1 rounded" style={{ color: "#52525b", background: "#27272a" }}>
+                {existingReportCount}
+              </span>
+            )}
           </button>
         )}
         <button
           onClick={() => onViewDetail(c)}
-          className="flex items-center gap-1 text-[11px] font-medium text-zinc-600 hover:text-[#00c8ff] transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-600 hover:text-[#00c8ff] hover:bg-[#00c8ff08] px-2 py-1 rounded-md -mr-2 transition-all cursor-pointer"
         >
           <Hash className="w-3.5 h-3.5" />
           View IOCs
