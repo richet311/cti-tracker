@@ -83,7 +83,7 @@ function DashboardContent() {
 
   useEffect(() => { if (authReady) load(); }, [authReady, load]);
 
-  const { collecting, feedMessages, startCollection } = useWebSocket(load);
+  const { collecting, feedMessages, elapsed, startCollection } = useWebSocket(load);
 
   function handleTabChange(tab: Tab) { setActiveTab(tab); setSidebarOpen(false); }
 
@@ -235,7 +235,7 @@ function DashboardContent() {
               transition={{ duration: 0.3 }}
               className="max-w-3xl mx-auto"
             >
-              <LiveFeed messages={feedMessages} collecting={collecting} onCollect={handleStartCollection} />
+              <LiveFeed messages={feedMessages} collecting={collecting} elapsed={elapsed} onCollect={handleStartCollection} />
             </motion.div>
           )}
 

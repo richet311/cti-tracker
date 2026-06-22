@@ -39,6 +39,7 @@ const LIMIT_OPTIONS = [
 interface Props {
   messages: FeedMessage[];
   collecting: boolean;
+  elapsed: number;
   onCollect: (limit: number) => void;
 }
 
@@ -51,7 +52,13 @@ function formatTime(ts: number) {
   });
 }
 
-export default function LiveFeed({ messages, collecting, onCollect }: Props) {
+function formatElapsed(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+
+export default function LiveFeed({ messages, collecting, elapsed, onCollect }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
   const [limit, setLimit] = useState(20);
   const iocs    = messages.filter((m) => m.type === "ioc");
@@ -98,15 +105,20 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
         </div>
 
         {collecting && (
-          <motion.div
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{ repeat: Infinity, duration: 1.4 }}
-            className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0"
-            style={{ color: ACCENT, background: `${ACCENT}14`, border: `1px solid ${ACCENT}28` }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} />
-            LIVE
-          </motion.div>
+          <div className="flex items-center gap-2 shrink-0">
+            <motion.div
+              animate={{ opacity: [1, 0.4, 1] }}
+              transition={{ repeat: Infinity, duration: 1.4 }}
+              className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+              style={{ color: ACCENT, background: `${ACCENT}14`, border: `1px solid ${ACCENT}28` }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: ACCENT }} />
+              LIVE
+            </motion.div>
+            <span className="font-mono text-[11px] tabular-nums" style={{ color: "#52525b" }}>
+              {formatElapsed(elapsed)}
+            </span>
+          </div>
         )}
 
         {done && !collecting && (
@@ -317,7 +329,7 @@ function CompleteRow({ msg }: { msg: FeedMessage }) {
             {msg.new_count} new
           </span>
           <span className="font-mono px-1.5 py-0.5 rounded" style={{ color: "#52525b", background: "#27272a40", border: "1px solid #3f3f46" }}>
-            {msg.dup_count} updated
+            {msg.dup_count} duplicates
           </span>
         </span>
       )}
