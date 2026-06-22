@@ -44,7 +44,7 @@ export function HuntTab() {
         ioc_type:       filters.ioc_type || undefined,
         severity:       filters.severity || undefined,
         source:         filters.source || undefined,
-        min_confidence: filters.min_confidence || undefined,
+        max_confidence: filters.max_confidence < 95 ? filters.max_confidence : undefined,
         limit: 10000,
       });
       setResults(data);
@@ -56,7 +56,7 @@ export function HuntTab() {
   }, [q, filters]);
 
   useEffect(() => {
-    if (!searched && !q && !filters.ioc_type && !filters.severity && !filters.source && !filters.min_confidence)
+    if (!searched && !q && !filters.ioc_type && !filters.severity && !filters.source && filters.max_confidence >= 95)
       return;
     const t = setTimeout(doSearch, 300);
     return () => clearTimeout(t);
