@@ -333,7 +333,7 @@ function Spinner({ label }: { label: string }) {
   );
 }
 
-function EmptyState({ Icon, title, hint }: { Icon: React.ComponentType<{ className?: string; weight?: string }>; title: string; hint: string }) {
+function EmptyState({ Icon, title, hint }: { Icon: React.ComponentType<{ className?: string; weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone" }>; title: string; hint: string }) {
   return (
     <div className="flex flex-col items-center py-14 gap-2 text-center px-6">
       <Icon className="w-8 h-8 text-zinc-800" />

@@ -1,149 +1,107 @@
 # CTI Tracker
 
-CTI Tracker is a local cyber threat intelligence workspace for collecting indicators of compromise, enriching them with public threat feeds, mapping activity to MITRE ATT&CK, tracking campaigns, and generating Markdown intelligence reports.
+A full-stack cyber threat intelligence platform for collecting IOCs from live threat feeds, mapping adversary activity to MITRE ATT&CK, tracking campaigns, and generating finished intelligence reports.
+
+Built as a portfolio project inspired by enterprise CTI analyst workflows.
 
 ## Features
 
-- Collect recent malware hashes from MalwareBazaar and malicious URLs from URLhaus.
-- Analyze hashes, IP addresses, domains, and URLs from the command line.
-- Search MITRE ATT&CK techniques and attach TTPs to campaigns.
-- Store IOCs, campaigns, TTP links, and reports in a local SQLite database.
-- Generate tactical and flash-style Markdown reports.
-- Run a FastAPI backend and Next.js dashboard for a visual workflow.
+- **Live IOC Collection** — streams threat indicators in real time from MalwareBazaar, URLhaus, and FeodoTracker via WebSocket; deduplicates against the database automatically
+- **IOC Management** — paginated table with type/source filters, bulk delete, campaign tagging, and watchlist support
+- **IOC Hunt** — search stored indicators by value, type, or source to pivot on a specific threat
+- **Campaign Tracking** — create and manage threat actor campaigns; associate IOCs and ATT&CK techniques per campaign
+- **MITRE ATT&CK Matrix** — interactive heatmap of all ATT&CK tactics and techniques; highlight covered techniques per campaign; live data from the STIX 2.1 bundle cached for 24 hours
+- **Intelligence Reports** — generate and export finished Markdown reports from campaign data
+- **Watchlist** — pin high-priority IOCs for quick access across sessions
+- **Google OAuth + JWT auth** — sign in with Google; sessions are backed by server-issued JWTs
+
+## Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion |
+| Backend | Node.js, Express.js, WebSocket (ws) |
+| Database | Supabase (PostgreSQL) |
+| Auth | NextAuth.js (Google OAuth) + server-side JWT |
+| Icons | Phosphor Icons |
+
+## Data Sources
+
+| Source | Data |
+|--------|------|
+| [MalwareBazaar](https://bazaar.abuse.ch/) | SHA256 / MD5 / SHA1 hashes from recent malware submissions |
+| [URLhaus](https://urlhaus.abuse.ch/) | Malicious URLs and domains from community reports |
+| [FeodoTracker](https://feodotracker.abuse.ch/) | C2 IPs linked to Emotet, Qakbot, and banking trojans |
+| [MITRE ATT&CK](https://attack.mitre.org/) | Full technique list via STIX 2.1 bundle, cached 24 h |
 
 ## Project Structure
 
-```text
+```
 cti-tracker/
-  analyzers/      IOC enrichment and campaign suggestion logic
-  api/            FastAPI backend and WebSocket collection endpoint
-  collectors/     MalwareBazaar, URLhaus, and MITRE ATT&CK collectors
-  database/       SQLite schema and CRUD operations
-  frontend/       Next.js dashboard
-  reporters/      Markdown report generation
-  data/           Local SQLite database and ATT&CK cache
-  reports/        Generated intelligence reports
-  main.py         CLI entry point
+├── frontend/               Next.js 14 App Router
+│   ├── app/                Pages and NextAuth API route
+│   ├── components/         UI components (dashboard, landing, shared)
+│   ├── hooks/              Custom React hooks
+│   └── lib/api/            Typed API client modules
+└── server/                 Express.js backend
+    ├── collectors/         Feed integrations (MalwareBazaar, URLhaus, FeodoTracker, MITRE)
+    ├── analyzers/          IOC scoring and campaign summary logic
+    ├── auth.js             JWT signing and middleware
+    ├── db.js               Supabase client and all database queries
+    ├── index.js            Express routes and WebSocket collection handler
+    ├── reports.js          Markdown intelligence report generation
+    └── schema.sql          PostgreSQL schema — run once in Supabase SQL editor
 ```
 
-## Requirements
+## Local Development
 
-- Python 3.10+
-- Node.js 18+ for the dashboard
-- Internet access for live feed collection and first-time MITRE ATT&CK cache download
+### Prerequisites
 
-## Setup
+- Node.js 18+
+- A [Supabase](https://supabase.com) project (free tier is sufficient)
+- Google OAuth credentials (optional — you can also use credential-based login)
 
-Create a virtual environment and install the Python dependencies:
+### 1. Database
 
-```powershell
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
+In your Supabase project, open the SQL editor and run `server/schema.sql`.
+
+### 2. Backend
+
+```bash
+cd server
+npm install
+cp .env.example .env
+# Fill in your credentials as described in .env.example
+node index.js
 ```
 
-Install the frontend dependencies:
+The Express server runs on `http://localhost:8000` by default.
+
+### 3. Frontend
 
 ```bash
 cd frontend
 npm install
-```
-
-## CLI Usage
-
-Run commands from the project root.
-
-Collect recent IOCs from MalwareBazaar and URLhaus:
-
-```bash
-python main.py collect --limit 20
-```
-
-Analyze a single IOC:
-
-```bash
-python main.py analyze 44d88612fea8a8f36de82e1278abb02f
-```
-
-Create a campaign and link an IOC:
-
-```bash
-python main.py campaign create "Operation NightShift" --actor "APT28" --motivation espionage
-python main.py campaign add-ioc 1 44d88612fea8a8f36de82e1278abb02f
-```
-
-Search MITRE ATT&CK and add a technique:
-
-```bash
-python main.py ttp search powershell
-python main.py campaign add-ttp 1 T1059.001 --notes "PowerShell execution"
-```
-
-Generate a Markdown report:
-
-```bash
-python main.py report generate 1 --tlp TLP:WHITE
-```
-
-View database totals:
-
-```bash
-python main.py stats
-```
-
-## Dashboard Usage
-
-Start the FastAPI backend from the project root:
-
-```bash
-uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-In a second terminal, start the Next.js dashboard:
-
-```bash
-cd frontend
+cp .env.example .env.local
+# Fill in your credentials as described in .env.example
 npm run dev
 ```
 
-Open the dashboard at:
+Open `http://localhost:3000`.
 
-```text
-http://localhost:3000
-```
+## Deploying
 
-The frontend expects the API at `http://localhost:8000`.
+The frontend deploys directly to [Vercel](https://vercel.com). The Express backend requires a persistent host with WebSocket support — [Railway](https://railway.app), [Render](https://render.com), and [Fly.io](https://fly.io) all work on free tiers.
 
-## Data and Reports
+1. Deploy `server/` to Railway or Render and configure its environment variables.
+2. Import this repo into Vercel, set the root directory to `frontend/`, and configure its environment variables — including the deployed backend URL.
 
-- `data/cti_tracker.db` stores the local SQLite database.
-- `data/mitre_attack_cache.json` stores the downloaded MITRE ATT&CK STIX cache.
-- `reports/` stores generated Markdown intelligence reports.
+## Security
 
-These files are local working data. If you publish the project, consider whether you want to commit sample data or keep generated data out of version control.
-
-## Optional API Keys
-
-The basic collection commands use public CSV feeds where possible. Some direct lookup features require free abuse.ch API keys:
-
-```cmd
-set BAZAAR_API_KEY=your_key_here
-set URLHAUS_API_KEY=your_key_here
-```
-
-PowerShell users can set them for the current session with:
-
-```powershell
-$env:BAZAAR_API_KEY = "your_key_here"
-$env:URLHAUS_API_KEY = "your_key_here"
-```
+- `.env` and `.env.local` are excluded by `.gitignore` — never commit them.
+- The backend refuses to start if its signing key is not set in the environment.
+- Service credentials are server-only and never exposed to the frontend.
 
 ## License
 
-This project is licensed under the MIT License. See `LICENSE` for details.
-
-Threat intelligence data from MITRE ATT&CK, MalwareBazaar, and URLhaus remains governed by each source's own terms and usage policies.
-
-## Suggested GitHub Description
-
-Local cyber threat intelligence platform for collecting IOCs, mapping activity to MITRE ATT&CK, tracking campaigns, and generating Markdown reports.
+MIT. Threat intelligence data from MITRE ATT&CK, MalwareBazaar, URLhaus, and FeodoTracker is subject to each source's own terms and usage policies.

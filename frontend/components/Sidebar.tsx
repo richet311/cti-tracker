@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useConfirmSignOut } from "@/hooks/useConfirmSignOut";
 import { BrandMark } from "@/components/shared/BrandMark";
+import { SignOutModal } from "@/components/shared/SignOutModal";
 import {
   SquaresFourIcon as SquaresFour,
   HashIcon as Hash,
@@ -18,7 +19,6 @@ import {
   GearSixIcon as GearSix,
   ArrowLeftIcon as ArrowLeft,
   SignOutIcon,
-  XIcon as X,
 } from "@phosphor-icons/react";
 
 export type Tab =
@@ -129,6 +129,7 @@ export default function Sidebar({ active, onChange, counts, collecting, watchlis
   }
 
   return (
+    <>
     <aside
       className="hidden md:flex flex-col w-[220px] shrink-0 min-h-screen"
       style={{ background: "#09090b", borderRight: "1px solid #1c1c20" }}
@@ -275,47 +276,14 @@ export default function Sidebar({ active, onChange, counts, collecting, watchlis
                   {session.user?.email ?? "analyst"}
                 </p>
               </div>
-              {!signOut.confirming ? (
-                <button
+              <button
                   onClick={signOut.request}
                   title="Sign out"
                   className="p-1 rounded text-zinc-600 hover:text-red-400 transition-colors cursor-pointer shrink-0"
                 >
                   <SignOutIcon className="w-3.5 h-3.5" />
                 </button>
-              ) : (
-                <button
-                  onClick={signOut.cancel}
-                  title="Cancel"
-                  className="p-1 rounded text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer shrink-0"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
-
-            {signOut.confirming && (
-              <div
-                className="px-3 py-2.5 flex items-center justify-between"
-                style={{ borderTop: "1px solid #1e1e22" }}
-              >
-                <span className="text-[11px] text-zinc-500">Sign out?</span>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={signOut.cancel}
-                    className="text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={signOut.confirm}
-                    className="text-[11px] font-semibold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -328,5 +296,12 @@ export default function Sidebar({ active, onChange, counts, collecting, watchlis
         </Link>
       </div>
     </aside>
+
+    <SignOutModal
+      open={signOut.confirming}
+      onCancel={signOut.cancel}
+      onConfirm={signOut.confirm}
+    />
+    </>
   );
 }

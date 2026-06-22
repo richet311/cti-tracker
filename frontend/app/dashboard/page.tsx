@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -28,7 +28,7 @@ const ACCENT = "#60a5fa";
 
 const VALID_TABS = new Set<Tab>(["overview", "iocs", "campaigns", "reports", "feed", "hunt", "matrix"]);
 
-export default function Dashboard() {
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -43,8 +43,21 @@ export default function Dashboard() {
 
   const {
     stats, iocs, campaigns, reports, watchlistCount,
-    loading, refreshing, load, refresh,
+    loading, refreshing, refreshedAt, load, refresh,
   } = useDashboardData();
+  const [showUpdated, setShowUpdated] = useState(false);
+  const prevRefreshedAt = useRef<Date | null>(null);
+
+  useEffect(() => {
+    if (!refreshedAt || refreshedAt === prevRefreshedAt.current) return;
+    const isInitialLoad = prevRefreshedAt.current === null;
+    prevRefreshedAt.current = refreshedAt;
+    if (!isInitialLoad) {
+      setShowUpdated(true);
+      const t = setTimeout(() => setShowUpdated(false), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [refreshedAt]);
 
   // Auth guard — exchange Google OAuth session for a server-signed JWT
   useEffect(() => {
@@ -164,6 +177,17 @@ export default function Dashboard() {
               {loading ? "Syncing" : stats ? "API Online" : "API Offline"}
             </div>
 
+            {showUpdated && (
+              <motion.span
+                initial={{ opacity: 0, x: 4 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0 }}
+                className="hidden sm:block text-[11px] font-medium text-emerald-400"
+              >
+                Updated
+              </motion.span>
+            )}
+
             <button
               onClick={refresh}
               disabled={refreshing || loading}
@@ -233,5 +257,13 @@ export default function Dashboard() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense>
+      <DashboardContent />
+    </Suspense>
   );
 }

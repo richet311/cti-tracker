@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -14,13 +14,15 @@ import {
   SignOutIcon as SignOutIcon,
 } from "@phosphor-icons/react";
 import { BrandMark as Brand } from "@/components/shared/BrandMark";
+import { SignOutModal } from "@/components/shared/SignOutModal";
+import { useConfirmSignOut } from "@/hooks/useConfirmSignOut";
 
 const ACCENT = "#60a5fa";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type Section = "profile" | "collection" | "security";
 
-const SECTIONS: { id: Section; label: string; Icon: React.ComponentType<{ className?: string; weight?: string }> }[] = [
+const SECTIONS: { id: Section; label: string; Icon: React.ComponentType<{ className?: string; weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone" }> }[] = [
   { id: "profile",    label: "Profile",     Icon: User },
   { id: "collection", label: "Collection",  Icon: Sliders },
   { id: "security",   label: "Security",    Icon: LockKey },
@@ -62,6 +64,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 export default function SettingsPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const confirmSignOut = useConfirmSignOut("/");
   const [section, setSection] = useState<Section>("profile");
 
   // collection prefs
@@ -201,7 +204,7 @@ export default function SettingsPage() {
             Back to Dashboard
           </Link>
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={confirmSignOut.request}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-red-500 hover:text-red-400 hover:bg-red-500/[0.06] transition-colors cursor-pointer mt-0.5"
           >
             <SignOutIcon className="w-3.5 h-3.5" weight="bold" />
@@ -395,7 +398,7 @@ export default function SettingsPage() {
             <Section title="Danger Zone">
               <p className="text-xs text-zinc-500 mb-4">Sign out of your account on this device.</p>
               <button
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={confirmSignOut.request}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer"
                 style={{ background: "#ef444415", color: "#f87171", border: "1px solid #ef444430" }}
               >
@@ -406,6 +409,12 @@ export default function SettingsPage() {
           </motion.div>
         )}
       </main>
+
+      <SignOutModal
+        open={confirmSignOut.confirming}
+        onCancel={confirmSignOut.cancel}
+        onConfirm={confirmSignOut.confirm}
+      />
     </div>
   );
 }

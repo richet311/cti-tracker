@@ -90,7 +90,9 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
             {collecting
               ? status?.message ?? "Fetching threat indicators..."
               : done
-              ? `${iocs.length} indicators collected`
+              ? done.new_count !== undefined
+                ? `${done.total} processed — ${done.new_count} new, ${done.dup_count} already known`
+                : `${iocs.length} indicators collected`
               : "Pull fresh IOCs from MalwareBazaar, URLhaus, and FeodoTracker"}
           </p>
         </div>
@@ -173,7 +175,7 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
         <div
           className="grid gap-3 px-5 py-2 shrink-0 text-[9px] font-bold uppercase tracking-widest"
           style={{
-            gridTemplateColumns: "64px 72px 1fr 120px",
+            gridTemplateColumns: "64px 72px 1fr 120px 44px",
             color: "#3f3f46",
             borderBottom: "1px solid #1a1a1e",
             background: "#0e0e11",
@@ -183,6 +185,7 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
           <span>Type</span>
           <span>Value</span>
           <span>Source</span>
+          <span>Status</span>
         </div>
       )}
 
@@ -236,14 +239,16 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
 function IOCRow({ msg }: { msg: FeedMessage }) {
   const typeColor = IOC_TYPE_COLORS[msg.ioc_type ?? ""] ?? "#94a3b8";
   const srcColor  = SOURCE_COLORS[msg.source] ?? "#52525b";
+  const isNew     = msg.is_new !== false;
 
   return (
     <div
       className="grid gap-3 px-5 py-2 text-[11px] hover:bg-white/[0.02] transition-colors items-center"
       style={{
-        gridTemplateColumns: "64px 72px 1fr 120px",
+        gridTemplateColumns: "64px 72px 1fr 120px 44px",
         borderBottom: "1px solid #18181b",
-        borderLeft: `2px solid ${srcColor}30`,
+        borderLeft: `2px solid ${isNew ? srcColor : "#27272a"}`,
+        opacity: isNew ? 1 : 0.55,
       }}
     >
       <span className="font-mono text-zinc-600 shrink-0">{formatTime(msg.timestamp)}</span>
@@ -265,6 +270,17 @@ function IOCRow({ msg }: { msg: FeedMessage }) {
 
       <span className="text-[11px] text-zinc-500 truncate">
         {SOURCE_LABELS[msg.source] ?? msg.source}
+      </span>
+
+      <span
+        className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded text-center w-fit shrink-0"
+        style={
+          isNew
+            ? { color: "#22c55e", background: "#22c55e14", border: "1px solid #22c55e28" }
+            : { color: "#52525b", background: "#27272a40", border: "1px solid #3f3f46" }
+        }
+      >
+        {isNew ? "NEW" : "DUP"}
       </span>
     </div>
   );
@@ -295,6 +311,16 @@ function CompleteRow({ msg }: { msg: FeedMessage }) {
     >
       <CheckCircle className="w-4 h-4 shrink-0 text-emerald-500" />
       <span className="text-[12px] font-semibold text-emerald-500">{msg.message}</span>
+      {msg.new_count !== undefined && (
+        <span className="ml-auto flex items-center gap-2 text-[11px]">
+          <span className="font-mono px-1.5 py-0.5 rounded" style={{ color: "#22c55e", background: "#22c55e14", border: "1px solid #22c55e28" }}>
+            {msg.new_count} new
+          </span>
+          <span className="font-mono px-1.5 py-0.5 rounded" style={{ color: "#52525b", background: "#27272a40", border: "1px solid #3f3f46" }}>
+            {msg.dup_count} updated
+          </span>
+        </span>
+      )}
     </div>
   );
 }

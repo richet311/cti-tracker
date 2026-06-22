@@ -79,8 +79,13 @@ export interface FeedMessage {
   ioc_type?: string;
   malware_family?: string | null;
   threat_type?: string | null;
+  confidence?: number;
+  severity?: string;
   first_seen?: string | null;
+  is_new?: boolean;
   total?: number;
+  new_count?: number;
+  dup_count?: number;
   timestamp: number;
 }
 
