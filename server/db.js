@@ -73,7 +73,7 @@ async function searchIocs({ q, ioc_type, severity, source, malware_family, min_c
     .limit(limit);
 
   if (q) {
-    query = query.or(`value.ilike.%${q}%,malware_family.ilike.%${q}%,threat_type.ilike.%${q}%`);
+    query = query.or(`value.ilike.*${q}*,malware_family.ilike.*${q}*,threat_type.ilike.*${q}*`);
   }
   if (ioc_type)       query = query.eq("ioc_type", ioc_type);
   if (severity)       query = query.eq("severity", severity);
