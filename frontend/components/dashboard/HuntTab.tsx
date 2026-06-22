@@ -45,7 +45,7 @@ export function HuntTab() {
         severity:       filters.severity || undefined,
         source:         filters.source || undefined,
         min_confidence: filters.min_confidence || undefined,
-        limit: 200,
+        limit: 10000,
       });
       setResults(data);
     } catch {

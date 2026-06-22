@@ -24,7 +24,7 @@ export function useDashboardData() {
     const start = Date.now();
     try {
       const [s, i, c, r, w] = await Promise.all([
-        fetchStats(), fetchIOCs(200), fetchCampaigns(), fetchReports(), fetchWatchlist(),
+        fetchStats(), fetchIOCs(10000), fetchCampaigns(), fetchReports(), fetchWatchlist(),
       ]);
       setStats(s);
       setIocs(i);

@@ -165,7 +165,7 @@ app.get("/api/users", requireAdmin, async (_req, res) => {
 
 app.get("/api/iocs", async (req, res) => {
   try {
-    const limit    = Math.min(parseInt(req.query.limit) || 50, 500);
+    const limit    = Math.min(parseInt(req.query.limit) || 50, 10000);
     const ioc_type = req.query.ioc_type || null;
     res.json(await db.listIocs(ioc_type, limit));
   } catch (e) {
@@ -183,7 +183,7 @@ app.get("/api/iocs/search", async (req, res) => {
       source:         source || null,
       malware_family: malware_family || null,
       min_confidence: parseInt(min_confidence) || 0,
-      limit:          Math.min(parseInt(limit) || 100, 500),
+      limit:          Math.min(parseInt(limit) || 100, 10000),
     }));
   } catch (e) {
     res.status(500).json({ detail: e.message });

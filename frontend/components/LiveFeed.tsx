@@ -61,7 +61,7 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
   return (
     <div
       className="flex flex-col overflow-hidden rounded-xl"
-      style={{ background: "#111114", border: "1px solid #27272a", minHeight: 540 }}
+      style={{ background: "#111114", border: "1px solid #27272a", minHeight: 700 }}
     >
       {/* Header */}
       <div
@@ -190,7 +190,7 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
       )}
 
       {/* Feed body */}
-      <div ref={listRef} className="flex-1 overflow-y-auto" style={{ maxHeight: 420 }}>
+      <div ref={listRef} className="flex-1 overflow-y-auto" style={{ maxHeight: 580 }}>
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
             <Clock className="w-8 h-8 text-zinc-700" />
