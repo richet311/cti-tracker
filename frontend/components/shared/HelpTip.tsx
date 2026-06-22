@@ -33,10 +33,15 @@ export function HelpTip({ title, steps }: Props) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-5 h-5 rounded-full flex items-center justify-center text-zinc-600 hover:text-zinc-400 hover:bg-white/[0.06] transition-colors cursor-pointer"
+        className="w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+        style={{
+          color: "#60a5fa",
+          background: "#60a5fa14",
+          border: "1px solid #60a5fa28",
+        }}
         title="How to use"
       >
-        <Question className="w-3 h-3" />
+        <Question className="w-4 h-4" weight="bold" />
       </button>
 
       <AnimatePresence>

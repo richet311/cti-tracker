@@ -10,7 +10,8 @@ import {
   Spinner,
   ArrowClockwiseIcon as ArrowClockwise,
 } from "@phosphor-icons/react";
-import { searchIOCs, IOC, SEVERITY_COLORS, truncate } from "@/lib/api";
+import { searchIOCs, deleteIoc, IOC, SEVERITY_COLORS, truncate } from "@/lib/api";
+import { TrashIcon as Trash } from "@phosphor-icons/react";
 import { HelpTip } from "@/components/shared/HelpTip";
 import { BASE } from "@/lib/api/constants";
 import {
@@ -29,7 +30,9 @@ export function HuntTab() {
   const [results, setResults]         = useState<IOC[]>([]);
   const [loading, setLoading]         = useState(false);
   const [searched, setSearched]       = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters]   = useState(true);
+  const [selectedIds, setSelectedIds]   = useState<Set<number>>(new Set());
+  const [deleting, setDeleting]         = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const doSearch = useCallback(async () => {
@@ -58,6 +61,31 @@ export function HuntTab() {
     const t = setTimeout(doSearch, 300);
     return () => clearTimeout(t);
   }, [filters, doSearch, searched, q]);
+
+  useEffect(() => { setSelectedIds(new Set()); }, [results]);
+
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() { setSelectedIds(new Set(results.map((r) => r.id))); }
+  function clearSelection() { setSelectedIds(new Set()); }
+
+  async function deleteSelected() {
+    if (selectedIds.size === 0 || deleting) return;
+    setDeleting(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => deleteIoc(id)));
+      clearSelection();
+      doSearch();
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   function updateFilter(patch: Partial<Filters>) {
     setFilters((f) => ({ ...f, ...patch }));
@@ -198,6 +226,35 @@ export function HuntTab() {
             </div>
           )}
 
+          {selectedIds.size > 0 && (
+            <div
+              className="flex items-center justify-between px-4 py-2.5 rounded-xl mb-3"
+              style={{ background: "#ef444412", border: "1px solid #ef444428" }}
+            >
+              <span className="text-sm text-zinc-300">
+                <span className="font-semibold text-red-400">{selectedIds.size}</span>
+                {" "}indicator{selectedIds.size !== 1 ? "s" : ""} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={clearSelection}
+                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+                >
+                  Deselect all
+                </button>
+                <button
+                  onClick={deleteSelected}
+                  disabled={deleting}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                  style={{ background: "#ef4444", color: "#fff", opacity: deleting ? 0.6 : 1 }}
+                >
+                  <Trash className="w-3.5 h-3.5" weight="bold" />
+                  {deleting ? "Deleting…" : "Delete selected"}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div
             className="rounded-xl overflow-hidden"
             style={{ border: "1px solid #27272a", background: "#111114" }}
@@ -209,7 +266,13 @@ export function HuntTab() {
             ) : results.length === 0 ? (
               <NoResults onReset={() => { setQ(""); resetFilters(); }} />
             ) : (
-              <ResultsTable iocs={results} />
+              <ResultsTable
+                iocs={results}
+                selectedIds={selectedIds}
+                onToggle={toggleSelect}
+                onSelectAll={selectAll}
+                onClearAll={clearSelection}
+              />
             )}
           </div>
         </div>
@@ -274,7 +337,21 @@ function NoResults({ onReset }: { onReset: () => void }) {
   );
 }
 
-function ResultsTable({ iocs }: { iocs: IOC[] }) {
+function ResultsTable({
+  iocs,
+  selectedIds,
+  onToggle,
+  onSelectAll,
+  onClearAll,
+}: {
+  iocs: IOC[];
+  selectedIds: Set<number>;
+  onToggle: (id: number) => void;
+  onSelectAll: () => void;
+  onClearAll: () => void;
+}) {
+  const allSelected = iocs.length > 0 && iocs.every((ioc) => selectedIds.has(ioc.id));
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -283,7 +360,15 @@ function ResultsTable({ iocs }: { iocs: IOC[] }) {
             className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500"
             style={{ borderBottom: "1px solid #27272a", background: "#0e0e12" }}
           >
-            <th className="text-left px-5 py-3">Severity</th>
+            <th className="px-4 py-3 w-10">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={allSelected ? onClearAll : onSelectAll}
+                className="w-3.5 h-3.5 cursor-pointer accent-blue-500"
+              />
+            </th>
+            <th className="text-left px-3 py-3">Severity</th>
             <th className="text-left px-4 py-3">Type</th>
             <th className="text-left px-4 py-3">Value</th>
             <th className="text-left px-4 py-3">Family / Threat</th>
@@ -294,41 +379,54 @@ function ResultsTable({ iocs }: { iocs: IOC[] }) {
         </thead>
         <tbody>
           <AnimatePresence initial={false}>
-            {iocs.map((ioc, i) => (
-              <motion.tr
-                key={ioc.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: Math.min(i * 0.01, 0.15) }}
-                className="border-b border-zinc-800/50 hover:bg-white/[0.02] transition-colors"
-              >
-                <td className="px-5 py-3"><SeverityBadge severity={ioc.severity} /></td>
-                <td className="px-4 py-3"><TypeBadge iocType={ioc.ioc_type} /></td>
-                <td className="px-4 py-3">
-                  <span
-                    className="font-mono text-[12px] text-zinc-300 cursor-pointer hover:text-zinc-100 transition-colors"
-                    title={ioc.value}
-                    onClick={() => navigator.clipboard.writeText(ioc.value)}
-                  >
-                    {truncate(ioc.value, 52)}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {ioc.malware_family ? (
-                    <span className="text-[#fbbf24] text-xs font-semibold">{ioc.malware_family}</span>
-                  ) : ioc.threat_type ? (
-                    <span className="text-[#ff6b35] text-xs">{ioc.threat_type}</span>
-                  ) : (
-                    <span className="text-zinc-700 text-xs">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3"><ConfidenceBar value={ioc.confidence ?? 50} /></td>
-                <td className="px-4 py-3"><SourceTag source={ioc.source} /></td>
-                <td className="px-4 py-3 text-zinc-500 text-xs font-mono">
-                  {ioc.first_seen?.slice(0, 10) ?? ioc.created_at?.slice(0, 10) ?? "—"}
-                </td>
-              </motion.tr>
-            ))}
+            {iocs.map((ioc, i) => {
+              const selected = selectedIds.has(ioc.id);
+              return (
+                <motion.tr
+                  key={ioc.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: Math.min(i * 0.01, 0.15) }}
+                  className="border-b border-zinc-800/50 hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  style={selected ? { background: "#60a5fa08" } : undefined}
+                  onClick={() => onToggle(ioc.id)}
+                >
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => onToggle(ioc.id)}
+                      className="w-3.5 h-3.5 cursor-pointer accent-blue-500"
+                    />
+                  </td>
+                  <td className="px-3 py-3"><SeverityBadge severity={ioc.severity} /></td>
+                  <td className="px-4 py-3"><TypeBadge iocType={ioc.ioc_type} /></td>
+                  <td className="px-4 py-3">
+                    <span
+                      className="font-mono text-[12px] text-zinc-300 hover:text-zinc-100 transition-colors"
+                      title={ioc.value}
+                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(ioc.value); }}
+                    >
+                      {truncate(ioc.value, 52)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {ioc.malware_family ? (
+                      <span className="text-[#fbbf24] text-xs font-semibold">{ioc.malware_family}</span>
+                    ) : ioc.threat_type ? (
+                      <span className="text-[#ff6b35] text-xs">{ioc.threat_type}</span>
+                    ) : (
+                      <span className="text-zinc-700 text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3"><ConfidenceBar value={ioc.confidence ?? 50} /></td>
+                  <td className="px-4 py-3"><SourceTag source={ioc.source} /></td>
+                  <td className="px-4 py-3 text-zinc-500 text-xs font-mono">
+                    {ioc.first_seen?.slice(0, 10) ?? ioc.created_at?.slice(0, 10) ?? "—"}
+                  </td>
+                </motion.tr>
+              );
+            })}
           </AnimatePresence>
         </tbody>
       </table>

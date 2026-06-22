@@ -61,7 +61,7 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
   return (
     <div
       className="flex flex-col overflow-hidden rounded-xl"
-      style={{ background: "#111114", border: "1px solid #27272a", minHeight: 480 }}
+      style={{ background: "#111114", border: "1px solid #27272a", minHeight: 540 }}
     >
       {/* Header */}
       <div
@@ -173,9 +173,9 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
       {/* Column headers */}
       {iocs.length > 0 && (
         <div
-          className="grid gap-3 px-5 py-2 shrink-0 text-[9px] font-bold uppercase tracking-widest"
+          className="grid gap-3 px-5 py-2.5 shrink-0 text-[10px] font-bold uppercase tracking-widest"
           style={{
-            gridTemplateColumns: "64px 72px 1fr 120px 44px",
+            gridTemplateColumns: "72px 80px 1fr 130px 52px",
             color: "#3f3f46",
             borderBottom: "1px solid #1a1a1e",
             background: "#0e0e11",
@@ -190,7 +190,7 @@ export default function LiveFeed({ messages, collecting, onCollect }: Props) {
       )}
 
       {/* Feed body */}
-      <div ref={listRef} className="flex-1 overflow-y-auto" style={{ maxHeight: 340 }}>
+      <div ref={listRef} className="flex-1 overflow-y-auto" style={{ maxHeight: 420 }}>
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-3 py-20">
             <Clock className="w-8 h-8 text-zinc-700" />
@@ -243,7 +243,7 @@ function IOCRow({ msg }: { msg: FeedMessage }) {
 
   return (
     <div
-      className="grid gap-3 px-5 py-2 text-[11px] hover:bg-white/[0.02] transition-colors items-center"
+      className="grid gap-3 px-5 py-2.5 text-[12px] hover:bg-white/[0.02] transition-colors items-center"
       style={{
         gridTemplateColumns: "64px 72px 1fr 120px 44px",
         borderBottom: "1px solid #18181b",
@@ -254,7 +254,7 @@ function IOCRow({ msg }: { msg: FeedMessage }) {
       <span className="font-mono text-zinc-600 shrink-0">{formatTime(msg.timestamp)}</span>
 
       <span
-        className="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded text-center shrink-0 w-fit"
+        className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded text-center shrink-0 w-fit"
         style={{
           color: typeColor,
           background: `${typeColor}18`,

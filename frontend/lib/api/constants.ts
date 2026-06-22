@@ -1,6 +1,6 @@
 export const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const wsBase = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/^https?/, "ws");
+const wsBase = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/^http/, "ws");
 export const WS_COLLECT_URL = `${wsBase}/ws/collect`;
 
 export const IOC_TYPE_COLORS: Record<string, string> = {
