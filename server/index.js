@@ -23,7 +23,15 @@ const { getC2Ips }                   = require("./collectors/feodotracker");
 const { fetchMitreData }             = require("./collectors/mitre");
 
 const app = express();
-app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"], credentials: true }));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
+  "https://cti-tracker.vercel.app",
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
 const loginLimiter = rateLimit({
