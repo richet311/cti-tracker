@@ -79,7 +79,7 @@ export function HuntTab() {
     if (selectedIds.size === 0 || deleting) return;
     setDeleting(true);
     try {
-      await Promise.all([...selectedIds].map((id) => deleteIoc(id)));
+      await Promise.all(Array.from(selectedIds).map((id) => deleteIoc(id)));
       clearSelection();
       doSearch();
     } finally {
