@@ -128,14 +128,17 @@ export function FilterPanel({ filters, onChange, onReset }: Props) {
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-1">
           <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
             Min Confidence
           </label>
           <span className="text-[11px] font-mono tabular-nums" style={{ color: ACCENT }}>
-            {filters.min_confidence}
+            {filters.min_confidence === 0 ? "off" : `≥ ${filters.min_confidence}`}
           </span>
         </div>
+        <p className="text-[9px] text-zinc-700 mb-2">
+          Hide IOCs below this confidence score
+        </p>
         <input
           type="range"
           min={0}
@@ -146,7 +149,7 @@ export function FilterPanel({ filters, onChange, onReset }: Props) {
           className="w-full accent-blue-400 cursor-pointer"
         />
         <div className="flex justify-between text-[9px] text-zinc-700 mt-1">
-          <span>0</span><span>50</span><span>95</span>
+          <span>off</span><span>50</span><span>95</span>
         </div>
       </div>
     </div>

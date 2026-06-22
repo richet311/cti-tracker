@@ -101,6 +101,8 @@ export function HuntTab() {
 
   const criticalCount = results.filter((r) => r.severity === "critical").length;
   const highCount     = results.filter((r) => r.severity === "high").length;
+  const mediumCount   = results.filter((r) => r.severity === "medium").length;
+  const lowCount      = results.filter((r) => r.severity === "low").length;
 
   return (
     <div>
@@ -210,6 +212,16 @@ export function HuntTab() {
                     {highCount > 0 && (
                       <span className="flex items-center gap-1" style={{ color: SEVERITY_COLORS.high }}>
                         {highCount} high
+                      </span>
+                    )}
+                    {mediumCount > 0 && (
+                      <span className="flex items-center gap-1" style={{ color: SEVERITY_COLORS.medium }}>
+                        {mediumCount} medium
+                      </span>
+                    )}
+                    {lowCount > 0 && (
+                      <span className="flex items-center gap-1" style={{ color: SEVERITY_COLORS.low }}>
+                        {lowCount} low
                       </span>
                     )}
                   </div>

@@ -68,17 +68,17 @@ async function searchIocs({ q, ioc_type, severity, source, malware_family, min_c
   let query = supabase
     .from("iocs")
     .select("*")
-    .gte("confidence", min_confidence)
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (q) {
     query = query.or(`value.ilike.*${q}*,malware_family.ilike.*${q}*,threat_type.ilike.*${q}*`);
   }
-  if (ioc_type)       query = query.eq("ioc_type", ioc_type);
-  if (severity)       query = query.eq("severity", severity);
-  if (source)         query = query.ilike("source", `%${source}%`);
-  if (malware_family) query = query.ilike("malware_family", `%${malware_family}%`);
+  if (ioc_type)          query = query.eq("ioc_type", ioc_type);
+  if (severity)          query = query.eq("severity", severity);
+  if (source)            query = query.ilike("source", `%${source}%`);
+  if (malware_family)    query = query.ilike("malware_family", `%${malware_family}%`);
+  if (min_confidence > 0) query = query.gte("confidence", min_confidence);
 
   const { data } = await query;
   return data ?? [];
