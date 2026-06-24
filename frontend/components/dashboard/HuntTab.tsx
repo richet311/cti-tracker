@@ -40,12 +40,11 @@ export function HuntTab() {
     setSearched(true);
     try {
       const data = await searchIOCs({
-        q:              q.trim() || undefined,
-        ioc_type:       filters.ioc_type || undefined,
-        severity:       filters.severity || undefined,
-        source:         filters.source || undefined,
-        max_confidence: filters.max_confidence < 95 ? filters.max_confidence : undefined,
-        limit: 10000,
+        q:        q.trim() || undefined,
+        ioc_type: filters.ioc_type || undefined,
+        severity: filters.severity || undefined,
+        source:   filters.source || undefined,
+        limit:    10000,
       });
       setResults(data);
     } catch {
@@ -56,7 +55,7 @@ export function HuntTab() {
   }, [q, filters]);
 
   useEffect(() => {
-    if (!searched && !q && !filters.ioc_type && !filters.severity && !filters.source && filters.max_confidence >= 95)
+    if (!searched && !q && !filters.ioc_type && !filters.severity && !filters.source)
       return;
     const t = setTimeout(doSearch, 300);
     return () => clearTimeout(t);

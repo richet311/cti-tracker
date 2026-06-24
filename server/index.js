@@ -175,14 +175,13 @@ app.get("/api/iocs", async (req, res) => {
 
 app.get("/api/iocs/search", async (req, res) => {
   try {
-    const { q, ioc_type, severity, source, malware_family, max_confidence, limit } = req.query;
+    const { q, ioc_type, severity, source, malware_family, limit } = req.query;
     res.json(await db.searchIocs({
       q:              q || null,
       ioc_type:       ioc_type || null,
       severity:       severity || null,
       source:         source || null,
       malware_family: malware_family || null,
-      max_confidence: max_confidence != null ? parseInt(max_confidence) : null,
       limit:          Math.min(parseInt(limit) || 100, 10000),
     }));
   } catch (e) {

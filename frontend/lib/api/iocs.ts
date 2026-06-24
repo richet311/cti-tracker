@@ -29,7 +29,6 @@ export async function searchIOCs(params: {
   severity?: string;
   source?: string;
   malware_family?: string;
-  max_confidence?: number;
   limit?: number;
 }): Promise<IOC[]> {
   const qs = new URLSearchParams();
@@ -38,7 +37,6 @@ export async function searchIOCs(params: {
   if (params.severity) qs.set("severity", params.severity);
   if (params.source) qs.set("source", params.source);
   if (params.malware_family) qs.set("malware_family", params.malware_family);
-  if (params.max_confidence != null) qs.set("max_confidence", String(params.max_confidence));
   qs.set("limit", String(params.limit ?? 200));
   const r = await fetch(`${BASE}/api/iocs/search?${qs}`);
   return r.json();

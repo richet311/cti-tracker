@@ -14,14 +14,12 @@ export interface Filters {
   ioc_type: string;
   severity: string;
   source: string;
-  max_confidence: number;
 }
 
 export const DEFAULT_FILTERS: Filters = {
   ioc_type: "",
   severity: "",
   source: "",
-  max_confidence: 95,
 };
 
 interface Props {
@@ -31,8 +29,7 @@ interface Props {
 }
 
 export function FilterPanel({ filters, onChange, onReset }: Props) {
-  const hasActive =
-    filters.ioc_type || filters.severity || filters.source || filters.max_confidence < 95;
+  const hasActive = filters.ioc_type || filters.severity || filters.source;
 
   return (
     <div
@@ -127,31 +124,6 @@ export function FilterPanel({ filters, onChange, onReset }: Props) {
         </select>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-            Max Confidence
-          </label>
-          <span className="text-[11px] font-mono tabular-nums" style={{ color: ACCENT }}>
-            {filters.max_confidence === 95 ? "off" : `≤ ${filters.max_confidence}`}
-          </span>
-        </div>
-        <p className="text-[9px] text-zinc-700 mb-2">
-          Hide IOCs above this confidence score
-        </p>
-        <input
-          type="range"
-          min={5}
-          max={95}
-          step={5}
-          value={filters.max_confidence}
-          onChange={(e) => onChange({ max_confidence: Number(e.target.value) })}
-          className="w-full accent-blue-400 cursor-pointer"
-        />
-        <div className="flex justify-between text-[9px] text-zinc-700 mt-1">
-          <span>5</span><span>50</span><span>off</span>
-        </div>
-      </div>
     </div>
   );
 }
