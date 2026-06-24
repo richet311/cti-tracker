@@ -24,14 +24,14 @@ export default function PrivacyPage() {
         <p>We collect the minimum data necessary to operate the platform:</p>
         <ul className="mt-2 space-y-2 list-none">
           <li className="flex gap-2">
-            <span className="text-blue-400 shrink-0">—</span>
+            <span className="text-blue-400 shrink-0">·</span>
             <span>
               <strong className="text-zinc-300">Google sign-in:</strong> Your display name and email
               address, as provided by Google OAuth 2.0.
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="text-blue-400 shrink-0">—</span>
+            <span className="text-blue-400 shrink-0">·</span>
             <span>
               <strong className="text-zinc-300">Username / password sign-up:</strong> Your chosen
               username, email address, and a bcrypt-hashed password. Plaintext passwords are never
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="text-blue-400 shrink-0">—</span>
+            <span className="text-blue-400 shrink-0">·</span>
             <span>
               <strong className="text-zinc-300">User-generated content:</strong> Campaigns, watchlist
               entries, IOC annotations, and intelligence reports you create within the platform.

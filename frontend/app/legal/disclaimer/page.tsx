@@ -48,7 +48,7 @@ export default function DisclaimerPage() {
         <p>IOC data displayed on this platform is sourced from the following providers:</p>
         <ul className="mt-2 space-y-4 list-none">
           <li className="flex gap-2">
-            <span className="text-blue-400 shrink-0">—</span>
+            <span className="text-blue-400 shrink-0">·</span>
             <div>
               <strong className="text-zinc-300">MalwareBazaar, URLhaus, FeodoTracker</strong>
               <br />
@@ -66,7 +66,7 @@ export default function DisclaimerPage() {
             </div>
           </li>
           <li className="flex gap-2">
-            <span className="text-blue-400 shrink-0">—</span>
+            <span className="text-blue-400 shrink-0">·</span>
             <div>
               <strong className="text-zinc-300">MITRE ATT&amp;CK®</strong>
               <br />

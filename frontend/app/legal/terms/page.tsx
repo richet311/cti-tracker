@@ -59,7 +59,7 @@ export default function TermsPage() {
         <p>IOC data integrated into this platform is sourced from the following third-party providers:</p>
         <ul className="mt-2 space-y-3 list-none">
           <li className="flex gap-2">
-            <span className="text-blue-400 shrink-0">—</span>
+            <span className="text-blue-400 shrink-0">·</span>
             <span>
               <strong className="text-zinc-300">MalwareBazaar, URLhaus, FeodoTracker</strong> — provided
               by abuse.ch under the{" "}
@@ -75,7 +75,7 @@ export default function TermsPage() {
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="text-blue-400 shrink-0">—</span>
+            <span className="text-blue-400 shrink-0">·</span>
             <span>
               <strong className="text-zinc-300">MITRE ATT&amp;CK®</strong> — © 2024 The MITRE
               Corporation. Used under the{" "}
