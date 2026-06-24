@@ -43,29 +43,33 @@ export function LandingFooter() {
           </div>
 
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">Reports</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">Legal</p>
             <ul className="space-y-2.5">
-              <li><span className="text-xs text-zinc-400">TLP WHITE</span></li>
-              <li><span className="text-xs text-zinc-400">TLP GREEN</span></li>
-              <li><span className="text-xs text-zinc-400">TLP AMBER</span></li>
-              <li><span className="text-xs text-zinc-400">TLP RED</span></li>
+              <li><Link href="/legal/terms" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">Terms of Service</Link></li>
+              <li><Link href="/legal/privacy" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">Privacy Policy</Link></li>
+              <li><Link href="/legal/disclaimer" className="text-xs text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer">Disclaimer</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mb-5">
-          <p className="text-[10px] text-zinc-500 leading-relaxed max-w-3xl">
-            <span className="font-semibold text-zinc-400">Data notice:</span> This platform stores account information (name and email address), user-generated content (campaigns, watchlist entries, and reports), and IOC metadata sourced from public threat intelligence feeds (MalwareBazaar, URLhaus, FeodoTracker, and MITRE ATT&amp;CK) in a database. IOC data originates entirely from public sources and contains no personal information. No usage analytics, third-party trackers, or advertising cookies are used. By creating an account you consent to storage of the above data for the purpose of operating the platform.
-          </p>
-        </div>
-
-        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span className="text-xs text-zinc-500">
-            &copy; 2026 CTI Tracker. GTAC-style threat intelligence platform.
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <span className="text-[11px] text-zinc-600 leading-relaxed max-w-lg">
+            &copy; 2026 CTI Tracker. Independent portfolio project.{" "}
+            Not affiliated with CrowdStrike, MITRE, or abuse.ch.
+            IOC data sourced from public feeds and provided for informational purposes only.
           </span>
-          <div className="flex items-center gap-2 text-xs text-zinc-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            All systems operational
+          <div className="flex items-center gap-4 shrink-0">
+            <div className="flex items-center gap-3 text-[11px] text-zinc-600">
+              <Link href="/legal/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
+              <span>·</span>
+              <Link href="/legal/privacy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
+              <span>·</span>
+              <Link href="/legal/disclaimer" className="hover:text-zinc-400 transition-colors">Disclaimer</Link>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              All systems operational
+            </div>
           </div>
         </div>
       </div>

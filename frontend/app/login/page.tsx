@@ -345,6 +345,19 @@ export default function LoginPage() {
                         : <><SignIn  className="w-4 h-4" weight="bold" />{loading ? "Signing in..."       : "Sign in"}</>
                       }
                     </button>
+
+                    {isSignup && (
+                      <p className="text-center text-[10px] text-zinc-600 leading-relaxed pt-1">
+                        By creating an account you agree to our{" "}
+                        <Link href="/legal/terms" className="text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors">
+                          Terms of Service
+                        </Link>{" "}
+                        and{" "}
+                        <Link href="/legal/privacy" className="text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors">
+                          Privacy Policy
+                        </Link>.
+                      </p>
+                    )}
                   </motion.form>
                 </AnimatePresence>
 
